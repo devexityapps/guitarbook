@@ -7,3 +7,4 @@ export { filterSongs, sortSongs, matchesQuery, collectTags, activeFilterCount, N
 export type { ParsedLink, Site, Role, Confidence } from './types.ts'
 export type { Song, Source, SongType, Status, KeyMode, Settings } from './model.ts'
 export type { Filters, SortKey, QuerySong, TimeLike } from './query.ts'
+export { EXTENSION_ID } from './extension.ts'
