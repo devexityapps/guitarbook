@@ -19,3 +19,17 @@ h1 { margin: 0 0 8px; font-size: 18px; font-weight: 600; }
 .btn { min-height: 44px; padding: 0 18px; border-radius: 12px; border: 1px solid var(--border); background: transparent; font: 600 15px 'Inter', sans-serif; color: inherit; cursor: pointer; }
 .btn.primary { background: var(--amber); border-color: var(--amber); color: #121417; }
 :focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+/* signed out */
+.signed-out { align-items: center; text-align: center; padding: 32px 24px 28px; gap: 12px; }
+.hero { border-radius: 16px; }
+.hero-name { margin: 8px 0 0; font: 700 24px 'Space Grotesk', 'Inter', sans-serif; }
+.wide { width: 100%; margin-top: 12px; }
+.btn:disabled { opacity: .5; cursor: default; }
+.small { font-size: 13px; }
+.error { margin: 0; color: #ff8a80; }
+
+/* footer: signed-in email + sign out */
+.who { display: flex; flex-direction: column; align-items: flex-end; min-width: 0; font-size: 13px; color: var(--text-2); }
+.email { max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.link { background: none; border: 0; padding: 0; color: #f5b971; font: inherit; cursor: pointer; }
