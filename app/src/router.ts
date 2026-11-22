@@ -22,13 +22,37 @@ export function useRoute(): Route {
   return route
 }
 
+// How many in-app entries sit behind the current one, so Back never leaves the app.
+let depth = 0
+let replacing = false
+try {
+  window.history.replaceState({ depth: 0 }, '')
+} catch {
+  /* history unavailable: goBack falls back to the given path */
+}
+window.addEventListener('hashchange', () => {
+  const state = window.history.state as { depth?: number } | null
+  if (typeof state?.depth === 'number') depth = state.depth // back / forward
+  else {
+    if (!replacing) depth += 1 // a new entry (link click or navigate)
+    try {
+      window.history.replaceState({ depth }, '')
+    } catch {
+      /* ignore */
+    }
+  }
+  replacing = false
+})
+
 export function navigate(to: string, replace = false) {
-  if (replace) window.location.replace(`#${to}`)
-  else window.location.hash = to
+  if (replace) {
+    replacing = true
+    window.location.replace(`#${to}`)
+  } else window.location.hash = to
 }
 
-/** Go back if there is history inside the app, otherwise to `fallback`. */
+/** Go back if there is an in-app entry behind this one, otherwise to `fallback`. */
 export function goBack(fallback: string) {
-  if (window.history.length > 1) window.history.back()
-  else navigate(fallback)
+  if (depth > 0) window.history.back()
+  else navigate(fallback, true)
 }

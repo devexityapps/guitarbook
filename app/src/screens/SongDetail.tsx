@@ -19,7 +19,7 @@ export function SongDetail({ id }: { id: string }) {
   if (!song) {
     return (
       <main className="screen">
-        <Header left={<a className="icon-btn" href="#/" aria-label="Back to library"><IconBack /></a>} />
+        <Header left={<a className="icon-btn mobile-only" href="#/" aria-label="Back to library"><IconBack /></a>} />
         <p className="muted pad">That song isn't in your library (it may have been deleted).</p>
       </main>
     )
@@ -36,7 +36,7 @@ export function SongDetail({ id }: { id: string }) {
   return (
     <main className="screen">
       <Header
-        left={<button className="icon-btn" aria-label="Back" onClick={() => goBack('/')}><IconBack /></button>}
+        left={<button className="icon-btn mobile-only" aria-label="Back" onClick={() => goBack('/')}><IconBack /></button>}
         right={<a className="link-btn" href={`#/song/${song.id}/edit`}>Edit</a>}
       />
       <div className="pad">
