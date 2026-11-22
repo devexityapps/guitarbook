@@ -11,7 +11,18 @@ import { SavedSong } from './SavedSong'
 import { NewSong, lastUsedStatus } from './NewSong'
 import './popup.css'
 
-type Page = { title: string; parsed: ParsedLink } | 'unsavable' | 'own-app' | null
+type Page = { title: string; parsed: ParsedLink; playbackSec?: number } | 'unsavable' | 'own-app' | null
+
+/** The only thing read from the page itself: the video's current playback position. Hidden if anything fails. */
+async function currentPlaybackSec(tabId: number): Promise<number | undefined> {
+  try {
+    const [res] = await chrome.scripting.executeScript({ target: { tabId }, func: () => document.querySelector('video')?.currentTime })
+    const t = res?.result
+    return typeof t === 'number' && Number.isFinite(t) && t >= 1 ? Math.floor(t) : undefined
+  } catch {
+    return undefined
+  }
+}
 
 function usePage(): Page {
   const [page, setPage] = useState<Page>(null)
@@ -21,7 +32,13 @@ function usePage(): Page {
       if (tab?.url && isOwnApp(tab.url)) return setPage('own-app')
       // parseLink only accepts http(s) pages; chrome://, the Web Store's new-tab page, file: etc. give null.
       const parsed = tab?.url && /^https?:\/\//i.test(tab.url) ? parseLink(tab.url, tab.title) : null
-      setPage(parsed ? { title: tab!.title ?? '', parsed } : 'unsavable')
+      if (!parsed) return setPage('unsavable')
+      const base = { title: tab!.title ?? '', parsed }
+      setPage(base)
+      // YouTube watch page without a t= in the URL: offer to start where the video is now (SPEC §5).
+      if (parsed.site === 'youtube' && parsed.ytVideoId && parsed.ytStartSec === undefined && new URL(tab!.url!).pathname === '/watch' && tab!.id !== undefined) {
+        void currentPlaybackSec(tab!.id).then((sec) => sec !== undefined && setPage({ ...base, playbackSec: sec }))
+      }
     }, () => setPage('unsavable'))
   }, [])
   return page
@@ -98,11 +115,12 @@ function SignedIn({ user }: { user: User }) {
   const email = user.email
   const out = () => void signOut(auth)
 
+  // Depends on the parse only: the playback position can arrive later and must not restart the lookup (and the form).
+  const parsed = typeof page === 'object' && page ? page.parsed : null
   const run = useCallback(async () => {
-    if (page === null || page === 'unsavable' || page === 'own-app') return
+    if (!parsed) return
     setLookup({ kind: 'loading' })
     try {
-      const { parsed } = page
       const song = await findSongBySourceKey(user.uid, parsed.canonicalKey)
       if (song) {
         setLookup({ kind: 'saved', song })
@@ -115,7 +133,7 @@ function SignedIn({ user }: { user: User }) {
     } catch {
       setLookup({ kind: 'error', message: "Can't reach Guitarbook right now." })
     }
-  }, [page, user.uid])
+  }, [parsed, user.uid])
   useEffect(() => { void run() }, [run])
 
   if (page === null) return <div className="popup"><Header /></div>
@@ -166,6 +184,7 @@ function SignedIn({ user }: { user: User }) {
           key={page.parsed.canonicalKey}
           uid={user.uid}
           parsed={page.parsed}
+          playbackSec={page.playbackSec}
           match={lookup.match}
           initialStatus={lookup.status}
           email={email}

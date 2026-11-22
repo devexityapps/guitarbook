@@ -1,5 +1,5 @@
 // Popup states 6.3 and 6.4 (extension/SPEC.md): this page isn't saved yet.
-import { useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { Timestamp } from 'firebase/firestore'
 import { KEY_ROOTS, ROLES, SITE_NAMES, STATUSES, mergeTags, sourceFromParsed, type KeyMode, type ParsedLink, type Role, type Status } from '@shared'
 import { createSong, patchSong, type SongDoc } from './data'
@@ -28,6 +28,15 @@ function roleOptions(site: ParsedLink['site']): { value: Role; label: string }[]
   return ROLES
 }
 
+/** 222 -> "3:42", 3725 -> "1:02:05". */
+function clock(total: number): string {
+  const h = Math.floor(total / 3600)
+  const m = Math.floor((total % 3600) / 60)
+  const s = total % 60
+  const pad = (x: number) => String(x).padStart(2, '0')
+  return h ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`
+}
+
 const SHORT_SITE: Record<ParsedLink['site'], string> = { youtube: 'YouTube', ultimateguitar: 'UG', songsterr: 'Songsterr', other: 'Link' }
 const roleName = (r: Role) => (ROLES.find((x) => x.value === r)?.label ?? r).toLowerCase()
 const linkSummary = (song: SongDoc) => song.sources.map((s) => `${SHORT_SITE[s.site]} ${roleName(s.role)}`).join(', ')
@@ -40,13 +49,19 @@ interface Props {
   initialStatus: Status
   email: string | null
   onSignOut: () => void
+  /** YouTube: where the video is now, in seconds (offered as the link's start time). */
+  playbackSec?: number
   /** Saved: show the saved-song view. */
   onSaved: (song: SongDoc) => void
   /** Shown at the bottom, e.g. the wrong-account hint. */
   hint?: ReactNode
 }
 
-export function NewSong({ uid, parsed, match, initialStatus, email, onSignOut, onSaved, hint }: Props) {
+export function NewSong({ uid, parsed, match, initialStatus, playbackSec, email, onSignOut, onSaved, hint }: Props) {
+  // Fixed per form, so a retry after a failed save overwrites the same song and link instead of adding another.
+  const songId = useRef(crypto.randomUUID())
+  const sourceId = useRef(crypto.randomUUID())
+  const [useStart, setUseStart] = useState(false)
   const [mode, setMode] = useState<'match' | 'form'>(match ? 'match' : 'form')
   const [role, setRole] = useState<Role>(parsed.role)
   const [type, setType] = useState<'song' | 'lesson'>(parsed.site === 'other' || parsed.typeGuess === 'lesson' ? 'lesson' : 'song')
@@ -58,7 +73,17 @@ export function NewSong({ uid, parsed, match, initialStatus, email, onSignOut, o
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const source = () => sourceFromParsed(parsed, { id: crypto.randomUUID(), role, label: null, now: Timestamp.now() })
+  const source = () => {
+    const src = sourceFromParsed(parsed, { id: sourceId.current, role, label: null, now: Timestamp.now() })
+    if (useStart && playbackSec !== undefined) {
+      // The app opens a link's url as it is, so the time goes into the url too (the canonical key ignores it).
+      const url = new URL(src.url)
+      url.searchParams.set('t', String(playbackSec))
+      src.url = url.toString()
+      src.ytStartSec = playbackSec
+    }
+    return src
+  }
   const where = parsed.site === 'other' ? 'this page' : `this ${SITE_NAMES[parsed.site]} page`
 
   const run = async (job: () => Promise<SongDoc>) => {
@@ -81,6 +106,7 @@ export function NewSong({ uid, parsed, match, initialStatus, email, onSignOut, o
       const [keyRoot, keyMode] = key ? (key.split('|') as [string, KeyMode]) : [null, null]
       const song = await createSong(
         uid,
+        songId.current,
         { type, title: title.trim(), artist: artist.trim() || null, keyRoot, keyMode, tags: mergeTags([], tags), status },
         source(),
       )
@@ -95,6 +121,12 @@ export function NewSong({ uid, parsed, match, initialStatus, email, onSignOut, o
     <section className="section tight">
       <h2 className="eyebrow">This link · {SITE_NAMES[parsed.site]}</h2>
       <Chips label="Role" value={role} onChange={setRole} options={roleOptions(parsed.site)} />
+      {playbackSec !== undefined && (
+        <label className="check">
+          <input type="checkbox" checked={useStart} onChange={(e) => setUseStart(e.target.checked)} />
+          <span>Start at {clock(playbackSec)} (where you are now)</span>
+        </label>
+      )}
     </section>
   )
 

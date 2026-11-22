@@ -93,11 +93,12 @@ export async function findSongByMatchKey(uid: string, matchKey: string): Promise
 export type NewSongFields = Pick<Song<Timestamp>, 'type' | 'title' | 'artist' | 'keyRoot' | 'keyMode' | 'tags' | 'status'>
 
 /**
- * Creates a song with one source (SPEC §6.4). Notes start empty and the link's label is null: both
+ * Creates a song with one source (SPEC §6.4). The caller picks the id, so retrying after a failure rewrites the
+ * same document instead of creating a second song. Notes start empty and the link's label is null: both
  * are edited in the app. Returns the song as stored.
  */
-export async function createSong(uid: string, fields: NewSongFields, source: SourceDoc): Promise<SongDoc> {
-  const ref = doc(collection(db, 'users', uid, 'songs'))
+export async function createSong(uid: string, id: string, fields: NewSongFields, source: SourceDoc): Promise<SongDoc> {
+  const ref = doc(db, 'users', uid, 'songs', id)
   const now = Timestamp.now()
   const data: Song<Timestamp> = {
     ...fields,

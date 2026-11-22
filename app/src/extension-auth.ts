@@ -19,16 +19,12 @@ const app = initializeApp({
 const auth = getAuth(app)
 
 const reply = (message: unknown) => window.parent.postMessage(message, EXTENSION_ORIGIN)
-// Progress notes for the extension to show when a sign-in stalls.
-const trace = (text: string) => reply({ type: 'gb:trace', text })
 
 async function signIn() {
   try {
-    trace('page: starting Google sign-in')
     const provider = new GoogleAuthProvider()
     provider.setCustomParameters({ prompt: 'select_account' })
     const result = await signInWithPopup(auth, provider)
-    trace('page: Google sign-in finished')
     const credential = GoogleAuthProvider.credentialFromResult(result)
     if (!credential?.idToken) throw new Error('Google did not return a credential.')
     reply({ type: 'gb:credential', idToken: credential.idToken, accessToken: credential.accessToken ?? null })
@@ -39,17 +35,8 @@ async function signIn() {
 
 window.addEventListener('message', (event) => {
   // Only our parent frame, and only when it is the extension.
-  if (event.source !== window.parent) return
-  if (event.origin !== EXTENSION_ORIGIN) {
-    // Tell whoever embeds us (they can't read this unless they are the extension, so use '*' for the note only).
-    window.parent.postMessage({ type: 'gb:trace', text: `page: ignored a message from ${event.origin}` }, '*')
-    return
-  }
+  if (event.source !== window.parent || event.origin !== EXTENSION_ORIGIN) return
   if ((event.data as { type?: string } | null)?.type === 'gb:start') void signIn()
 })
-
-window.addEventListener('error', (e) => trace(`page error: ${e.message}`))
-window.addEventListener('unhandledrejection', (e) => trace(`page error: ${String(e.reason)}`))
-trace('page: loaded')
 
 if (window.parent === window) document.body.textContent = 'This page is used by the Guitarbook extension.'

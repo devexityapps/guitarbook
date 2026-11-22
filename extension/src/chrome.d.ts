@@ -21,6 +21,9 @@ declare namespace chrome {
     const onCreated: { addListener(cb: (window: Window) => void): void }
     function update(windowId: number, info: { focused?: boolean; drawAttention?: boolean }): Promise<Window>
   }
+  namespace scripting {
+    function executeScript<T>(injection: { target: { tabId: number }; func: () => T }): Promise<{ result?: T }[]>
+  }
   namespace offscreen {
     function createDocument(params: { url: string; reasons: string[]; justification: string }): Promise<void>
     function closeDocument(): Promise<void>

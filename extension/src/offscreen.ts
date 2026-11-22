@@ -36,11 +36,7 @@ chrome.runtime.onMessage.addListener((message: { target?: string; type?: string 
 
 window.addEventListener('message', (event) => {
   if (event.origin !== APP_ORIGIN || event.source !== frame?.contentWindow) return
-  const data = event.data as { type?: string; text?: string } | null
-  if (data?.type === 'gb:trace') {
-    trace(String(data.text))
-    return
-  }
+  const data = event.data as { type?: string } | null
   if (data?.type === 'gb:credential' || data?.type === 'gb:auth-error') {
     clearTimeout(timer)
     void chrome.runtime.sendMessage(data)

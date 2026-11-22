@@ -79,3 +79,6 @@ h1 { margin: 0 0 8px; font-size: 18px; font-weight: 600; }
 .foot-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .link.big { font-size: 16px; font-weight: 500; }
 .btn.big { width: 100%; min-height: 52px; font-size: 16px; }
+
+.check { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); cursor: pointer; }
+.check input { width: 18px; height: 18px; accent-color: var(--amber); }
