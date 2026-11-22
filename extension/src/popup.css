@@ -65,3 +65,17 @@ h1 { margin: 0 0 8px; font-size: 18px; font-weight: 600; }
 .hint { color: var(--text-2); font-size: 14px; }
 .label.top { margin-top: 12px; }
 .body { flex: 1; min-height: 0; }
+
+/* unsaved states */
+.banner.warn { border-color: #6b4f23; background: #2a2219; }
+.banner.warn .banner-title { color: #f5b971; }
+.match-song { font: 600 20px 'Space Grotesk', 'Inter', sans-serif; margin-top: 8px; overflow-wrap: anywhere; }
+.banner .row { margin-top: 12px; }
+.status-line { display: flex; gap: 8px; margin: 0 0 12px; font-size: 14px; color: var(--text-2); }
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+.seg .chip { min-height: 44px; border-radius: 12px; font-size: 15px; }
+.section.tight { margin-top: 16px; }
+.foot.stacked { flex-direction: column; align-items: stretch; gap: 10px; }
+.foot-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.link.big { font-size: 16px; font-weight: 500; }
+.btn.big { width: 100%; min-height: 52px; font-size: 16px; }

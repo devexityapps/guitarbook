@@ -1,5 +1,5 @@
 import {
-  Timestamp, collection, doc, getCountFromServer, getDocsFromServer, increment, limit, query, updateDoc, where, writeBatch,
+  Timestamp, collection, doc, getCountFromServer, getDocsFromServer, increment, limit, query, setDoc, updateDoc, where, writeBatch,
 } from 'firebase/firestore'
 import { deriveFields, type Song } from '@shared'
 import { db } from './firebase'
@@ -82,4 +82,33 @@ export async function deleteSong(uid: string, id: string) {
     refs.slice(i, i + 450).forEach((r) => batch.delete(r))
     await withTimeout(batch.commit())
   }
+}
+
+/** A song with this normalized title and artist (matchKey, SPEC §3), if any. */
+export async function findSongByMatchKey(uid: string, matchKey: string): Promise<SongDoc | null> {
+  const snap = await getDocsFromServer(query(songsOf(uid), where('matchKey', '==', matchKey), limit(1)))
+  return snap.docs[0] ? asSong(snap.docs[0]) : null
+}
+
+export type NewSongFields = Pick<Song<Timestamp>, 'type' | 'title' | 'artist' | 'keyRoot' | 'keyMode' | 'tags' | 'status'>
+
+/**
+ * Creates a song with one source (SPEC §6.4). Notes start empty and the link's label is null: both
+ * are edited in the app. Returns the song as stored.
+ */
+export async function createSong(uid: string, fields: NewSongFields, source: SourceDoc): Promise<SongDoc> {
+  const ref = doc(collection(db, 'users', uid, 'songs'))
+  const now = Timestamp.now()
+  const data: Song<Timestamp> = {
+    ...fields,
+    notes: '',
+    sources: [source],
+    createdAt: now,
+    updatedAt: now,
+    lastOpenedAt: null,
+    openCount: 0,
+    ...deriveFields({ title: fields.title, artist: fields.artist, sources: [source] }),
+  }
+  await withTimeout(setDoc(ref, data))
+  return { ...data, id: ref.id }
 }

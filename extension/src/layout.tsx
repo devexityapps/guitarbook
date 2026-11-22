@@ -10,14 +10,36 @@ export function Header({ right }: { right?: ReactNode }) {
   )
 }
 
-export function Footer({ openLabel, onOpen, email, onSignOut }: { openLabel: string; onOpen: () => void; email: string | null; onSignOut: () => void }) {
+/** `primary` (when given) is the screen's main action, stacked above the library link as in the mockups. */
+export function Footer({ openLabel, onOpen, email, onSignOut, primary }: {
+  /** Omit both to show no library button (e.g. when you are already in the app). */
+  openLabel?: string
+  onOpen?: () => void
+  email: string | null
+  onSignOut: () => void
+  primary?: ReactNode
+}) {
+  const who = (
+    <div className="who">
+      <span className="email" title={email ?? ''}>{email}</span>
+      <button className="link" onClick={onSignOut}>Sign out</button>
+    </div>
+  )
+  if (primary && openLabel && onOpen) {
+    return (
+      <footer className="foot stacked">
+        {primary}
+        <div className="foot-row">
+          <button className="link big" onClick={onOpen}>{openLabel}</button>
+          {who}
+        </div>
+      </footer>
+    )
+  }
   return (
     <footer className="foot">
-      <button className="btn primary" onClick={onOpen}>{openLabel}</button>
-      <div className="who">
-        <span className="email" title={email ?? ''}>{email}</span>
-        <button className="link" onClick={onSignOut}>Sign out</button>
-      </div>
+      {openLabel && onOpen ? <button className="btn primary" onClick={onOpen}>{openLabel}</button> : <span />}
+      {who}
     </footer>
   )
 }

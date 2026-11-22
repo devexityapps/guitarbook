@@ -1,25 +1,27 @@
 import { StrictMode, useCallback, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { onAuthStateChanged, signOut, type User } from 'firebase/auth/web-extension'
-import { parseLink } from '@shared'
+import { deriveFields, parseLink, type ParsedLink, type Status } from '@shared'
 import { auth } from './firebase'
-import { libraryUrl } from './config'
-import { findSongBySourceKey, libraryIsEmpty, type SongDoc } from './data'
+import { isOwnApp, libraryUrl } from './config'
+import { findSongByMatchKey, findSongBySourceKey, libraryIsEmpty, type SongDoc } from './data'
 import { AUTH_ERROR_KEY } from './messages'
 import { Footer, Header } from './layout'
 import { SavedSong } from './SavedSong'
+import { NewSong, lastUsedStatus } from './NewSong'
 import './popup.css'
 
-type Page = { url: string; title: string; canonicalKey: string } | 'unsavable' | null
+type Page = { title: string; parsed: ParsedLink } | 'unsavable' | 'own-app' | null
 
 function usePage(): Page {
   const [page, setPage] = useState<Page>(null)
   useEffect(() => {
     // With activeTab, url and title are readable once the user has clicked the icon (or used the shortcut).
     chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
+      if (tab?.url && isOwnApp(tab.url)) return setPage('own-app')
       // parseLink only accepts http(s) pages; chrome://, the Web Store's new-tab page, file: etc. give null.
       const parsed = tab?.url && /^https?:\/\//i.test(tab.url) ? parseLink(tab.url, tab.title) : null
-      setPage(parsed ? { url: tab!.url!, title: tab!.title ?? '', canonicalKey: parsed.canonicalKey } : 'unsavable')
+      setPage(parsed ? { title: tab!.title ?? '', parsed } : 'unsavable')
     }, () => setPage('unsavable'))
   }, [])
   return page
@@ -87,7 +89,7 @@ function SignedOut() {
 type Lookup =
   | { kind: 'loading' }
   | { kind: 'saved'; song: SongDoc }
-  | { kind: 'new'; empty: boolean }
+  | { kind: 'new'; match: SongDoc | null; empty: boolean; status: Status }
   | { kind: 'error'; message: string }
 
 function SignedIn({ user }: { user: User }) {
@@ -97,12 +99,19 @@ function SignedIn({ user }: { user: User }) {
   const out = () => void signOut(auth)
 
   const run = useCallback(async () => {
-    if (page === null || page === 'unsavable') return
+    if (page === null || page === 'unsavable' || page === 'own-app') return
     setLookup({ kind: 'loading' })
     try {
-      const song = await findSongBySourceKey(user.uid, page.canonicalKey)
-      if (song) setLookup({ kind: 'saved', song })
-      else setLookup({ kind: 'new', empty: await libraryIsEmpty(user.uid) })
+      const { parsed } = page
+      const song = await findSongBySourceKey(user.uid, parsed.canonicalKey)
+      if (song) {
+        setLookup({ kind: 'saved', song })
+        return
+      }
+      // Not saved: does a song with this title and artist exist? (Only when both were guessed.)
+      const matchKey = parsed.titleGuess && parsed.artistGuess ? deriveFields({ title: parsed.titleGuess, artist: parsed.artistGuess, sources: [] }).matchKey : null
+      const match = matchKey ? await findSongByMatchKey(user.uid, matchKey) : null
+      setLookup({ kind: 'new', match, empty: match ? false : await libraryIsEmpty(user.uid), status: await lastUsedStatus() })
     } catch {
       setLookup({ kind: 'error', message: "Can't reach Guitarbook right now." })
     }
@@ -110,6 +119,19 @@ function SignedIn({ user }: { user: User }) {
   useEffect(() => { void run() }, [run])
 
   if (page === null) return <div className="popup"><Header /></div>
+
+  if (page === 'own-app') {
+    return (
+      <div className="popup">
+        <Header />
+        <main className="body">
+          <h1>You're already in Guitarbook.</h1>
+          <p className="muted">Open the lesson or tab you want to keep and click the icon there.</p>
+        </main>
+        <Footer email={email} onSignOut={out} />
+      </div>
+    )
+  }
 
   if (page === 'unsavable') {
     return (
@@ -130,11 +152,27 @@ function SignedIn({ user }: { user: User }) {
         key={lookup.song.id}
         uid={user.uid}
         initial={lookup.song}
-        canonicalKey={page.canonicalKey}
+        canonicalKey={page.parsed.canonicalKey}
         email={email}
         onSignOut={out}
         onChanged={() => void run()}
       />
+    )
+  }
+
+  if (lookup.kind === 'new') {
+    return (
+      <NewSong
+          key={page.parsed.canonicalKey}
+          uid={user.uid}
+          parsed={page.parsed}
+          match={lookup.match}
+          initialStatus={lookup.status}
+          email={email}
+          onSignOut={out}
+          onSaved={(song) => setLookup({ kind: 'saved', song })}
+          hint={lookup.empty ? <p className="hint">Signed in as {email}. Your songs are on a different account? <button className="link" onClick={out}>Sign out</button></p> : null}
+        />
     )
   }
 
@@ -147,17 +185,6 @@ function SignedIn({ user }: { user: User }) {
           <>
             <p className="error">{lookup.message}</p>
             <button className="btn" onClick={() => void run()}>Try again</button>
-          </>
-        )}
-        {lookup.kind === 'new' && (
-          <>
-            <h1>Not saved yet</h1>
-            <p className="muted">This page isn't in your library. Saving from here comes next.</p>
-            <div className="label top">Page title</div>
-            <p className="value">{page.title || '(no title)'}</p>
-            {lookup.empty && (
-              <p className="hint">Signed in as {email}. Your songs are on a different account? <button className="link" onClick={out}>Sign out</button></p>
-            )}
           </>
         )}
       </main>
