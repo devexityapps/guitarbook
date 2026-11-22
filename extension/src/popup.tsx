@@ -1,21 +1,25 @@
-import { StrictMode, useEffect, useState } from 'react'
+import { StrictMode, useCallback, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { onAuthStateChanged, signOut, type User } from 'firebase/auth/web-extension'
+import { parseLink } from '@shared'
 import { auth } from './firebase'
 import { libraryUrl } from './config'
+import { findSongBySourceKey, libraryIsEmpty, type SongDoc } from './data'
 import { AUTH_ERROR_KEY } from './messages'
+import { Footer, Header } from './layout'
+import { SavedSong } from './SavedSong'
 import './popup.css'
 
-type Page = { url: string; title: string } | 'unsavable' | null
-
-const isWebUrl = (url: string | undefined) => !!url && /^https?:\/\//i.test(url)
+type Page = { url: string; title: string; canonicalKey: string } | 'unsavable' | null
 
 function usePage(): Page {
   const [page, setPage] = useState<Page>(null)
   useEffect(() => {
     // With activeTab, url and title are readable once the user has clicked the icon (or used the shortcut).
     chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
-      setPage(tab && isWebUrl(tab.url) ? { url: tab.url!, title: tab.title ?? '' } : 'unsavable')
+      // parseLink only accepts http(s) pages; chrome://, the Web Store's new-tab page, file: etc. give null.
+      const parsed = tab?.url && /^https?:\/\//i.test(tab.url) ? parseLink(tab.url, tab.title) : null
+      setPage(parsed ? { url: tab!.url!, title: tab!.title ?? '', canonicalKey: parsed.canonicalKey } : 'unsavable')
     }, () => setPage('unsavable'))
   }, [])
   return page
@@ -31,15 +35,6 @@ function useUser(): User | null | undefined {
 const openLibrary = () => {
   void chrome.tabs.create({ url: libraryUrl() })
   window.close()
-}
-
-function Header() {
-  return (
-    <header className="head">
-      <img src="icons/icon-32.png" width={24} height={24} alt="" />
-      <span className="name">Guitarbook</span>
-    </header>
-  )
 }
 
 function SignedOut() {
@@ -89,33 +84,84 @@ function SignedOut() {
   )
 }
 
+type Lookup =
+  | { kind: 'loading' }
+  | { kind: 'saved'; song: SongDoc }
+  | { kind: 'new'; empty: boolean }
+  | { kind: 'error'; message: string }
+
 function SignedIn({ user }: { user: User }) {
   const page = usePage()
+  const [lookup, setLookup] = useState<Lookup>({ kind: 'loading' })
+  const email = user.email
+  const out = () => void signOut(auth)
+
+  const run = useCallback(async () => {
+    if (page === null || page === 'unsavable') return
+    setLookup({ kind: 'loading' })
+    try {
+      const song = await findSongBySourceKey(user.uid, page.canonicalKey)
+      if (song) setLookup({ kind: 'saved', song })
+      else setLookup({ kind: 'new', empty: await libraryIsEmpty(user.uid) })
+    } catch {
+      setLookup({ kind: 'error', message: "Can't reach Guitarbook right now." })
+    }
+  }, [page, user.uid])
+  useEffect(() => { void run() }, [run])
+
+  if (page === null) return <div className="popup"><Header /></div>
+
+  if (page === 'unsavable') {
+    return (
+      <div className="popup">
+        <Header />
+        <main className="body">
+          <h1>Guitarbook can't save this page.</h1>
+          <p className="muted">Browser pages like this one (settings, new tab, the Web Store) can't be saved. Go to the lesson or tab you want to keep and click the icon there.</p>
+        </main>
+        <Footer openLabel="Open library" onOpen={openLibrary} email={email} onSignOut={out} />
+      </div>
+    )
+  }
+
+  if (lookup.kind === 'saved') {
+    return (
+      <SavedSong
+        key={lookup.song.id}
+        uid={user.uid}
+        initial={lookup.song}
+        canonicalKey={page.canonicalKey}
+        email={email}
+        onSignOut={out}
+        onChanged={() => void run()}
+      />
+    )
+  }
+
   return (
     <div className="popup">
       <Header />
       <main className="body">
-        {page === null ? null : page === 'unsavable' ? (
+        {lookup.kind === 'loading' && <p className="muted">Checking your library…</p>}
+        {lookup.kind === 'error' && (
           <>
-            <h1>Guitarbook can't save this page.</h1>
-            <p className="muted">Browser pages like this one (settings, new tab, the Web Store) can't be saved. Go to the lesson or tab you want to keep and click the icon there.</p>
+            <p className="error">{lookup.message}</p>
+            <button className="btn" onClick={() => void run()}>Try again</button>
           </>
-        ) : (
+        )}
+        {lookup.kind === 'new' && (
           <>
-            <div className="label">Page title</div>
+            <h1>Not saved yet</h1>
+            <p className="muted">This page isn't in your library. Saving from here comes next.</p>
+            <div className="label top">Page title</div>
             <p className="value">{page.title || '(no title)'}</p>
-            <div className="label">URL</div>
-            <p className="value url">{page.url}</p>
+            {lookup.empty && (
+              <p className="hint">Signed in as {email}. Your songs are on a different account? <button className="link" onClick={out}>Sign out</button></p>
+            )}
           </>
         )}
       </main>
-      <footer className="foot">
-        <button className="btn primary" onClick={openLibrary}>Open library</button>
-        <div className="who">
-          <span className="email" title={user.email ?? ''}>{user.email}</span>
-          <button className="link" onClick={() => void signOut(auth)}>Sign out</button>
-        </div>
-      </footer>
+      <Footer openLabel="Open library" onOpen={openLibrary} email={email} onSignOut={out} />
     </div>
   )
 }

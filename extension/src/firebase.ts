@@ -1,4 +1,5 @@
 import { initializeApp } from 'firebase/app'
+import { initializeFirestore, persistentLocalCache } from 'firebase/firestore'
 // Auth must come from the web-extension entry point in all extension code (extension/SPEC.md §2).
 import { getAuth } from 'firebase/auth/web-extension'
 
@@ -13,3 +14,9 @@ export const app = initializeApp({
 
 // Persists in the extension's IndexedDB, shared by the popup and the service worker.
 export const auth = getAuth(app)
+
+// Persistent cache, so a write started just as the popup closes is kept and not lost.
+export const db = initializeFirestore(app, {
+  ignoreUndefinedProperties: true,
+  localCache: persistentLocalCache(),
+})
