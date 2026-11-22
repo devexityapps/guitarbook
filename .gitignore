@@ -4,3 +4,6 @@ dist/
 .firebase/
 .DS_Store
 firebase-debug.log
+
+# Chrome extension private signing key (the public half is in the manifest)
+extension/key.pem
