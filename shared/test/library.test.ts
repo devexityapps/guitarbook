@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { findSongByKey, findMatchingSong, mergeTags, sourceFromParsed, parseLink, relativeDays, calendarDaysBetween, isStale } from '../src/index.ts'
+import { findSongByKey, findMatchingSong, deriveFields, derivedFieldsStale, mergeTags, sourceFromParsed, parseLink, relativeDays, calendarDaysBetween, isStale } from '../src/index.ts'
 
 const songs = [
   { id: 'a', title: 'Pride and Joy', artist: 'Stevie Ray Vaughan', sources: [{ canonicalKey: 'ug:123' }] },
@@ -57,4 +57,27 @@ test('isStale: never opened, or older than staleDays', () => {
   assert.equal(isStale(null, now, 30), true)
   assert.equal(isStale(new Date(2026, 9, 23, 12), now, 30), false) // 30 days: not more than 30
   assert.equal(isStale(new Date(2026, 9, 22, 12), now, 30), true) // 31 days
+})
+
+test('deriveFields: sourceKeys in order, matchKey is normalized title|artist', () => {
+  const d = deriveFields({ title: 'Pride & Joy!', artist: 'The Stevie Ray Vaughan', sources: [{ canonicalKey: 'ug:1' }, { canonicalKey: 'yt:abcdefghijk' }] })
+  assert.deepEqual(d.sourceKeys, ['ug:1', 'yt:abcdefghijk'])
+  assert.equal(d.matchKey, 'pride joy|stevie ray vaughan')
+  assert.equal(deriveFields({ title: 'Blackbird', artist: 'The Beatles', sources: [] }).matchKey, deriveFields({ title: 'blackbird', artist: 'Beatles', sources: [] }).matchKey)
+})
+
+test('deriveFields: no artist gives "title|"; empty title gives null', () => {
+  assert.equal(deriveFields({ title: 'Nashville numbers', artist: null, sources: [] }).matchKey, 'nashville numbers|')
+  assert.equal(deriveFields({ title: '  ', artist: 'X', sources: [] }).matchKey, null)
+  assert.equal(deriveFields({ title: '!!!', artist: 'X', sources: [] }).matchKey, null)
+})
+
+test('derivedFieldsStale', () => {
+  const base = { title: 'Blackbird', artist: 'The Beatles', sources: [{ canonicalKey: 'ss:57' }] }
+  const good = { ...base, ...deriveFields(base) }
+  assert.equal(derivedFieldsStale(good), false)
+  assert.equal(derivedFieldsStale(base), true)
+  assert.equal(derivedFieldsStale({ ...good, title: 'Blackbird 2' }), true)
+  assert.equal(derivedFieldsStale({ ...good, sources: [] }), true)
+  assert.equal(derivedFieldsStale({ ...good, matchKey: null }), true)
 })

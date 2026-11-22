@@ -8,6 +8,8 @@ export const IconPlus = () => <svg {...svg}><path d="M12 5v14M5 12h14" /></svg>
 export const IconOut = () => <svg {...svg} width={20} height={20}><path d="M7 17L17 7M8 7h9v9" /></svg>
 export const IconCheck = () => <svg {...svg} width={20} height={20}><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
 export const IconDots = () => <svg {...svg}><circle cx="12" cy="5" r="1.2" /><circle cx="12" cy="12" r="1.2" /><circle cx="12" cy="19" r="1.2" /></svg>
+export const IconSearch = () => <svg {...svg} width={22} height={22}><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+export const IconPlay = () => <svg viewBox="0 0 24 24" width={14} height={14} fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
 export const IconGuitar = () => <svg {...svg} width={18} height={18}><path d="M14.5 9.5l5-5M17 3l4 4M10.5 10.5a3.5 3.5 0 10-4.2 5.2 3 3 0 004 4 3.5 3.5 0 000-9z" /></svg>
 
 // ---- small pieces ----------------------------------------------------------

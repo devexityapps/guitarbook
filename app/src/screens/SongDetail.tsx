@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ROLES, SITE_NAMES, isStale, type Role } from '@shared'
-import { setSources, useSongs, useUid, type SongDoc, type SourceDoc } from '../data'
-import { DEFAULT_STALE_DAYS, keyText, lastOpenedText, openedText, toDate } from '../format'
+import { setSources, useSettings, useSongs, useUid, type SongDoc, type SourceDoc } from '../data'
+import { keyText, lastOpenedText, openedText, toDate } from '../format'
 import { Chips, Field, Header, IconBack, IconDots, IconOut, IconPlus, Sheet, StatusPill } from '../ui'
 import { goBack } from '../router'
 
@@ -11,6 +11,7 @@ const defaultLabel = (s: SourceDoc) => (s.site === 'youtube' && s.role === 'less
 export function SongDetail({ id }: { id: string }) {
   const songs = useSongs()
   const uid = useUid()
+  const { staleDays } = useSettings()
   const [menuFor, setMenuFor] = useState<string | null>(null)
   const [editing, setEditing] = useState<SourceDoc | null>(null)
 
@@ -51,7 +52,7 @@ export function SongDetail({ id }: { id: string }) {
         <h2 className="section">Links</h2>
         <div className="stack">
           {song.sources.map((src) => {
-            const stale = isStale(toDate(src.lastOpenedAt), now, DEFAULT_STALE_DAYS)
+            const stale = isStale(toDate(src.lastOpenedAt), now, staleDays)
             return (
               <div key={src.id} className="card source">
                 <a className="source-link" href={src.url} target="_blank" rel="noopener">

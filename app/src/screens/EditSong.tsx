@@ -27,7 +27,7 @@ function Editor({ song }: { song: SongDoc }) {
   const save = (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.title.trim()) return
-    patchSong(uid, song.id, songFieldsFrom(form))
+    patchSong(uid, song, songFieldsFrom(form))
     navigate(`/song/${song.id}`, true)
   }
   const remove = async () => {

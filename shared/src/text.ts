@@ -37,3 +37,14 @@ export function normalizeForMatch(text: string): string {
     .trim()
     .replace(/^the\s+/, '')
 }
+
+/** For search: lowercase, no accents, apostrophes dropped, other punctuation becomes a space. */
+export function normalizeForSearch(text: string): string {
+  return text
+    .normalize('NFD')
+    .replace(/\p{M}+/gu, '')
+    .toLowerCase()
+    .replace(/['’]/g, '')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+}

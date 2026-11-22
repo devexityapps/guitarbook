@@ -8,7 +8,7 @@
 - **Files:** the two SVGs in `design/` are the source. Export PNGs at 192 and 512, plus a maskable 512 with the book kept inside the safe zone (roughly the central 80%).
 - **Originality:** the icon is an original design; don't swap in stock guitar or brand imagery.
 
-**Mockups:** screenshots in `design/` (Library, Song detail, Add link, Import bookmarks, Settings). Match their layout and colors; the sample songs and numbers in them are placeholder data.
+**Mockups:** screenshots in `design/` (Library, Song detail, Add link, Import bookmarks, Settings). Match their layout and colors; the sample songs and numbers in them are placeholder data. Where a screenshot and this spec disagree, the spec wins. In particular, `import-bookmarks.png` predates the folder picker, the 'other' links and the subfolder tags (§4.6).
 
 **Theme:**
 - Background `#121417`, surfaces `#1C1F24`, borders `#2F343C`.
@@ -29,7 +29,7 @@ v1 is **organization + open tracking only**. There's no review scheduling yet, b
 - Tags, key, status, notes
 - Paste-a-link add flow with site detection, link parsing and duplicate detection
 - Tracking when each item and each link was last opened from the app
-- One-time import from a Chrome bookmarks HTML export
+- Import from a Chrome bookmarks HTML export, limited to folders the user picks
 - Search, filter, sort (default: longest untouched)
 - JSON export of all data
 
@@ -47,6 +47,9 @@ v1 is **organization + open tracking only**. There's no review scheduling yet, b
 
 - **Repo:** single git repo at `guitarbook/`. Folders: `app/`, `shared/`, `extension/` (empty), `site/` (empty).
 - **Work only in `app/` and `shared/`.** Do not scaffold anything in `extension/` or `site/`.
+- **The Chrome extension** is specified in `extension/SPEC.md`. It shares this data model, and it needs two things from the app:
+  - **Stable routes:** the extension links to `#/` (Library) and `#/song/<id>` (Song detail). Don't change these routes without updating the extension.
+  - **A hosted sign-in page** (`app/public/extension-auth.html`), built in the extension's step 3.
 - **`shared/`** holds code more than one part will need later: link parsing, URL normalization, data types. `app/` imports from it. No React or Firebase imports in `shared/`.
 - **App:** Vite + React + TypeScript. Keep dependencies few.
 - **Backend:** Firebase Auth (Google sign-in only), Firestore, Firebase Hosting. No Cloud Functions in v1.
@@ -81,6 +84,8 @@ users/{uid}/songs/{songId}
   updatedAt: Timestamp
   lastOpenedAt: Timestamp | null  // max of sources[].lastOpenedAt
   openCount: number               // total opens across all sources
+  sourceKeys: string[]            // derived: sources.map(s => s.canonicalKey)
+  matchKey: string | null         // derived: normalized "title|artist" (same normalization as the duplicate-song match); null if title empty
 
 Source {
   id: string                      // client-generated
@@ -110,6 +115,11 @@ users/{uid}/events/{eventId}
 - Sources are embedded: one read per song, and a song has only a handful of links.
 - The events log is append-only. Nothing in v1 reads it except export, but the review feature will need the history.
 - No scheduling fields. Firestore is schemaless; those get added when review is built.
+- **Derived fields (`sourceKeys`, `matchKey`)** exist so the Chrome extension can find a song with one query instead of loading the library.
+  - A single pure helper in `shared/` computes them.
+  - Every write that changes sources, title or artist, from the app or the extension, runs it.
+  - On library load, the app repairs any song whose derived fields are missing or stale.
+  - The app itself keeps doing its matching in memory.
 - No instrument field. The app is scoped to guitar; other instruments are handled with tags (e.g. `ukulele`). An instrument field gets added only if scale/chord diagrams are built and need it.
 
 ### Security rules
@@ -180,18 +190,33 @@ Single "Sign in with Google" button. After sign-in, go to Library.
 - Delete song (confirm). This also deletes that song's events.
 
 ### 4.6 Import bookmarks
-1. **File picker** for a Chrome bookmarks export (`bookmarks_*.html`, Netscape bookmark format). Parse it in the browser. Nothing is uploaded except the resulting songs.
-2. **Keep only links** where the parser returns youtube, ultimateguitar or songsterr. Show "N links kept: YouTube a · UG b · Songsterr c. Everything else was skipped."
-3. **Skip duplicates:** links whose `canonicalKey` already exists in the library, with a count.
-4. **Group links into proposed songs** by normalized title + artist. Use the bookmark's title text as the primary source of names; use the URL as a fallback (§5).
-5. **Two tabs:**
+1. **File picker** for a Chrome bookmarks export (`bookmarks_*.html`, Netscape bookmark format). Parse it in the browser, keeping the folder structure (`<H3>` folder headings and nested `<DL>` lists). Nothing is uploaded except the resulting songs. Chrome can't export a single folder, so expect the whole bookmark tree.
+2. **Folder picker:**
+   - Show the folder tree with counts per folder, including subfolders: links from the three sites, and other links.
+   - The user checks one or more folders. Checking a folder includes all its subfolders.
+   - Nothing is preselected. The "Next" button stays disabled until at least one folder is checked.
+   - Only links inside the checked folders go on. Everything else in the file is discarded and never saved.
+3. **Keep every link in the chosen folders:**
+   - Links where the parser returns youtube, ultimateguitar or songsterr are handled as §5 describes.
+   - Any other http(s) link is kept with site 'other' and role 'other'. Skip non-web bookmarks (`javascript:`, `chrome://`, `file:`) and say how many were skipped.
+   - Summary line: "N links from the chosen folders: YouTube a · UG b · Songsterr c · Other d."
+4. **Skip duplicates:** links whose `canonicalKey` already exists in the library, with a count.
+5. **Subfolders as tags:**
+   - Each link gets one suggested tag per folder between the chosen folder and the link. The chosen folder's own name is never a tag.
+   - Example: choose "Guitar"; a link in Guitar > Blues > SRV gets `blues` and `srv`. A link sitting directly in "Guitar" gets none.
+   - Tag text: folder name, trimmed and lowercased.
+   - Before import, show every tag about to be created, with its item count and a checkbox (default checked). Unchecked tags aren't applied. Typical junk to untick: "misc", "new folder", "to sort".
+   - Tags from subfolders are merged with any tags the parser suggests (e.g. `ukulele`).
+6. **Group links into proposed songs** by normalized title + artist. Use the bookmark's title text as the primary source of names; use the URL as a fallback (§5). Links in the same group merge their tags.
+7. **Two tabs:**
    - **Ready:** groups with a confident title and artist. Each has a checkbox, default checked.
    - **Check names:** groups needing a decision:
      - a Songsterr link whose artist/song split is unknown (editable Artist and Song fields, prefilled with a best guess)
      - a YouTube link that could be a song or a lesson (Song / Lesson toggle)
+     - every 'other' link: the title is prefilled from the bookmark title, artist is empty, with a Song / Lesson toggle (default Lesson)
      - anything with no usable title
-6. **One status for all imported items** (default Wishlist).
-7. **"Import N items"** writes in batches (Firestore batch limit is 500 operations), then returns to Library.
+8. **One status for all imported items** (default Wishlist).
+9. **"Import N items":** N is the number of checked groups. It writes in batches (Firestore batch limit is 500 operations), then returns to Library.
 
 Imported sources get `lastOpenedAt: null`. Bookmark add dates are not opens.
 
@@ -281,7 +306,11 @@ Each step ends with something usable. Stop after each one for the user to check.
 5. **Open tracking.**
    - **Check:** tapping a link on the phone opens the app; on return, "Today" and the count are updated. Works in airplane mode, then syncs.
 6. **Bookmark import.**
-   - **Check:** import the user's real export; review "Check names"; spot-check 10 items.
+   - **Check:** import the user's real export, choosing only the guitar folder(s):
+     - nothing outside them comes in
+     - subfolder tags look right, and junk ones can be unticked
+     - 'other' links land in "Check names"
+     - spot-check 10 items
 7. **PWA install + Settings** (staleness threshold, thumbnails toggle, sign out, export).
    - **Check:** install to the home screen with the Guitarbook name and icon; it opens offline with cached data; changing the threshold on the phone changes the highlighting on desktop; the export downloads.
 

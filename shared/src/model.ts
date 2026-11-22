@@ -38,6 +38,10 @@ export interface Song<T> {
   updatedAt: T
   lastOpenedAt: T | null
   openCount: number
+  /** Derived (SPEC §3): sources.map(s => s.canonicalKey). See deriveFields. */
+  sourceKeys: string[]
+  /** Derived (SPEC §3): normalized "title|artist"; null if the title is empty. */
+  matchKey: string | null
 }
 
 export const KEY_ROOTS = ['C', 'C#', 'Db', 'D', 'D#', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'G#', 'Ab', 'A', 'A#', 'Bb', 'B'] as const
@@ -64,3 +68,11 @@ export const SITE_NAMES: Record<Site, string> = {
   songsterr: 'Songsterr',
   other: 'Other',
 }
+
+/** users/{uid}.settings (SPEC §3). */
+export interface Settings {
+  staleDays: number
+  showThumbnails: boolean
+}
+
+export const DEFAULT_SETTINGS: Settings = { staleDays: 30, showThumbnails: true }

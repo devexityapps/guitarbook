@@ -60,3 +60,33 @@ export function sourceFromParsed<T>(
   if (parsed.ssSongId !== undefined) source.ssSongId = parsed.ssSongId
   return source
 }
+
+/** The derived fields of SPEC §3. Run on every write that changes sources, title or artist. */
+export function deriveFields(song: { title: string; artist: string | null; sources: { canonicalKey: string }[] }): {
+  sourceKeys: string[]
+  matchKey: string | null
+} {
+  const title = normalizeForMatch(song.title ?? '')
+  return {
+    sourceKeys: song.sources.map((s) => s.canonicalKey),
+    matchKey: title ? `${title}|${normalizeForMatch(song.artist ?? '')}` : null,
+  }
+}
+
+/** True when the stored derived fields are missing or don't match what deriveFields gives. */
+export function derivedFieldsStale(song: {
+  title: string
+  artist: string | null
+  sources: { canonicalKey: string }[]
+  sourceKeys?: string[]
+  matchKey?: string | null
+}): boolean {
+  const want = deriveFields(song)
+  const have = song.sourceKeys
+  return (
+    !Array.isArray(have) ||
+    have.length !== want.sourceKeys.length ||
+    have.some((k, i) => k !== want.sourceKeys[i]) ||
+    song.matchKey !== want.matchKey
+  )
+}

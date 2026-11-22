@@ -1,8 +1,6 @@
 import type { Timestamp } from 'firebase/firestore'
 import { relativeDays } from '@shared'
 
-export const DEFAULT_STALE_DAYS = 30 // becomes a per-user setting in step 7
-
 export const toDate = (ts: Timestamp | null): Date | null => (ts ? ts.toDate() : null)
 
 /** "Opened 3 days ago" / "Opened today" / "Never opened". */
@@ -24,4 +22,11 @@ export function lastOpenedText(ts: Timestamp | null, count: number, now = new Da
 export function keyText(root: string | null, mode: 'major' | 'minor' | null): string | null {
   if (!root) return null
   return mode === 'minor' ? `${root}m` : root
+}
+
+/** Right-hand column of a Library row: "Never / opened", "63 days / since opened". */
+export function sinceOpened(ts: Timestamp | null, now = new Date()): { big: string; small: string } {
+  if (!ts) return { big: 'Never', small: 'opened' }
+  const rel = relativeDays(ts.toDate(), now)
+  return { big: rel, small: rel === 'Today' ? 'opened' : 'since opened' }
 }
