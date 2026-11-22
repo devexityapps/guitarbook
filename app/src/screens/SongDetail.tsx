@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ROLES, SITE_NAMES, isStale, type Role } from '@shared'
-import { setSources, useSettings, useSongs, useUid, type SongDoc, type SourceDoc } from '../data'
+import { recordOpen, setSources, useSettings, useSongs, useUid, type SongDoc, type SourceDoc } from '../data'
 import { keyText, lastOpenedText, openedText, toDate } from '../format'
 import { Chips, Field, Header, IconBack, IconDots, IconOut, IconPlus, Sheet, StatusPill } from '../ui'
 import { goBack } from '../router'
@@ -55,7 +55,7 @@ export function SongDetail({ id }: { id: string }) {
             const stale = isStale(toDate(src.lastOpenedAt), now, staleDays)
             return (
               <div key={src.id} className="card source">
-                <a className="source-link" href={src.url} target="_blank" rel="noopener">
+                <a className="source-link" href={src.url} target="_blank" rel="noopener" onClick={() => recordOpen(uid, song, src.id)}>
                   <div className="source-body">
                     <div className="eyebrow">{SITE_NAMES[src.site]} · {roleLabel(src.role)}</div>
                     <div className="source-label">{src.label || defaultLabel(src)}</div>

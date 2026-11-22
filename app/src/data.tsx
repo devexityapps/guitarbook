@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import {
-  Timestamp, collection, doc, getDocs, onSnapshot, query, setDoc, updateDoc, where, writeBatch,
+  Timestamp, collection, doc, getDocs, increment, onSnapshot, query, setDoc, updateDoc, where, writeBatch,
 } from 'firebase/firestore'
 import { DEFAULT_SETTINGS, deriveFields, derivedFieldsStale, type Settings, type Song, type Source } from '@shared'
 import { db } from './firebase'
@@ -89,6 +89,19 @@ export function latestOpened(sources: SourceDoc[]): Timestamp | null {
 
 export function setSources(uid: string, song: SongDoc, sources: SourceDoc[], extra: Partial<Omit<Song<Timestamp>, Derived>> = {}) {
   patchSong(uid, song, { ...extra, sources, lastOpenedAt: latestOpened(sources) })
+}
+
+/**
+ * SPEC §6: log an open. Called from the link's click handler, which must not preventDefault or await.
+ * Adds an events doc and updates the song (lastOpenedAt, openCount, the source's lastOpenedAt); updatedAt is left alone.
+ */
+export function recordOpen(uid: string, song: SongDoc, sourceId: string) {
+  const now = Timestamp.now()
+  const sources = song.sources.map((s) => (s.id === sourceId ? { ...s, lastOpenedAt: now } : s))
+  const batch = writeBatch(db)
+  batch.set(doc(collection(db, 'users', uid, 'events')), { songId: song.id, sourceId, action: 'open', at: now })
+  batch.update(doc(db, 'users', uid, 'songs', song.id), { sources, lastOpenedAt: now, openCount: increment(1) })
+  void batch.commit().catch((err) => console.error('record open', err))
 }
 
 const repairing = new Set<string>()
