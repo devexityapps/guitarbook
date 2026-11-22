@@ -5,7 +5,7 @@ import { keyText } from '../format'
 import { IconPlus, StatusPill } from '../ui'
 
 // Step 3 stub: a plain list so songs can be reached. Search, filters, sorting and staleness come in step 4.
-export function Library({ selectedId }: { selectedId?: string }) {
+export function Library() {
   const songs = useSongs()
   const sorted = [...(songs ?? [])].sort((a, b) => a.title.localeCompare(b.title))
   return (
@@ -27,7 +27,7 @@ export function Library({ selectedId }: { selectedId?: string }) {
           <ul className="list">
             {sorted.map((s) => (
               <li key={s.id}>
-                <a className={`row-link${s.id === selectedId ? ' selected' : ''}`} href={`#/song/${s.id}`} aria-current={s.id === selectedId ? 'page' : undefined}>
+                <a className="row-link" href={`#/song/${s.id}`}>
                   <div className="row-main">
                     <div className="row-title">{s.title}</div>
                     <div className="row-sub">{[s.artist ?? (s.type === 'lesson' ? 'Lesson' : null), keyText(s.keyRoot, s.keyMode)].filter(Boolean).join(' · ')}</div>

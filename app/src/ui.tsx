@@ -120,14 +120,12 @@ export function SongFields({ value, onChange }: { value: SongFormValues; onChang
         <span className="field-label">Type</span>
         <Chips label="Type" value={value.type} onChange={(v) => set('type', v)} options={[{ value: 'song', label: 'Song' }, { value: 'lesson', label: 'Lesson' }]} />
       </div>
-      <div className="row row-resp">
-        <Field label="Title">
-          <input className="input" required value={value.title} onChange={(e) => set('title', e.target.value)} />
-        </Field>
-        <Field label="Artist (optional)">
-          <input className="input" value={value.artist} onChange={(e) => set('artist', e.target.value)} />
-        </Field>
-      </div>
+      <Field label="Title">
+        <input className="input" required value={value.title} onChange={(e) => set('title', e.target.value)} />
+      </Field>
+      <Field label="Artist (optional)">
+        <input className="input" value={value.artist} onChange={(e) => set('artist', e.target.value)} />
+      </Field>
       <div className="row">
         <Field label="Key">
           <select className="input" value={value.keyRoot} onChange={(e) => set('keyRoot', e.target.value)}>
