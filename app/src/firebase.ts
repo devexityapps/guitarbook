@@ -20,5 +20,6 @@ export const googleProvider = new GoogleAuthProvider()
 
 // Persistent cache so writes survive the page being backgrounded (SPEC §2).
 export const db = initializeFirestore(app, {
+  ignoreUndefinedProperties: true,
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
 })
