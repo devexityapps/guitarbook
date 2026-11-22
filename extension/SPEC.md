@@ -139,8 +139,9 @@ The parser already handles URLs; these are extra rules for tab titles.
 
 ### 6.2 Page already saved
 - **Banner:** "Saved in *Song title*", plus "Last opened X · opened N times" for this link.
-- **Editable song fields:** title, artist, key, status, tags, notes.
-- **Editable fields for this link:** role, label.
+- **Editable song fields:** title, artist, key, status, tags.
+- **Editable fields for this link:** role.
+- **Notes and link labels are not in the popup** (any state). They're edited in the app; the popup stays for quick saves and fixes. Saving from the popup leaves `notes` empty for a new song and `label` null for a new link, and never overwrites existing values.
 - **Saving:** autosaves on change (debounced ~600 ms), with a small "Saved" indicator. Edits made just before the popup closes must still be written: flush any pending save immediately on `pagehide` / `visibilitychange`.
 - **Other links on this song:** compact list (site · role · label · last opened). Clicking one opens it in a new tab and logs an open, exactly as in the app (event doc + `lastOpenedAt` + `openCount`).
 - **"Mark opened now"** button: logs an open for this link. Opens aren't recorded automatically when you merely visit a saved page.
@@ -148,11 +149,11 @@ The parser already handles URLs; these are extra rules for tab titles.
 
 ### 6.3 Not saved, but matches an existing song
 - **Panel:** "Already in your library: *Song* — *Artist* (N links)", with **Add to this song** (default) / **New song**.
-- **Add to this song:** asks only for this link's role and label, then saves and switches to 6.2.
+- **Add to this song:** asks only for this link's role, then saves and switches to 6.2.
 - **New song:** goes to the 6.4 form.
 
 ### 6.4 Not saved, new
-- **Form prefilled per §5:** type, title, artist, key (empty unless the parser found one), status (default: last used, else Wishlist), tags (parser suggestions), plus this link's role and label. On YouTube, the start-time option.
+- **Form prefilled per §5:** type, title, artist, key (empty unless the parser found one), status (default: last used, else Wishlist), tags (parser suggestions), plus this link's role. On YouTube, the start-time option.
 - **Save** creates the song, then switches to 6.2.
 - Nothing is written until Save is clicked.
 
