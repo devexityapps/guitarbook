@@ -14,11 +14,10 @@ export function EditSong({ id }: { id: string }) {
 function Editor({ song }: { song: SongDoc }) {
   const uid = useUid()
   const [form, setForm] = useState<SongFormValues>({
-    type: song.type,
     title: song.title,
     artist: song.artist ?? '',
     keyRoot: song.keyRoot ?? '',
-    keyMode: song.keyMode ?? 'major',
+    keyMode: song.keyMode ?? '',
     status: song.status,
     tags: song.tags,
     notes: song.notes,

@@ -41,7 +41,7 @@ export function SongDetail({ id }: { id: string }) {
       />
       <div className="pad">
         <h1 className="song-title">{song.title}</h1>
-        {song.artist ? <p className="song-artist">{song.artist}</p> : song.type === 'lesson' && <p className="song-artist">Lesson</p>}
+        {song.artist && <p className="song-artist">{song.artist}</p>}
         <div className="pills">
           {key && <span className="pill pill-key">Key of {song.keyMode === 'minor' ? `${song.keyRoot} minor` : song.keyRoot}</span>}
           <StatusPill status={song.status} />

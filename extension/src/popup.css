@@ -72,8 +72,6 @@ h1 { margin: 0 0 8px; font-size: 18px; font-weight: 600; }
 .match-song { font: 600 20px 'Space Grotesk', 'Inter', sans-serif; margin-top: 8px; overflow-wrap: anywhere; }
 .banner .row { margin-top: 12px; }
 .status-line { display: flex; gap: 8px; margin: 0 0 12px; font-size: 14px; color: var(--text-2); }
-.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
-.seg .chip { min-height: 44px; border-radius: 12px; font-size: 15px; }
 .section.tight { margin-top: 16px; }
 .foot.stacked { flex-direction: column; align-items: stretch; gap: 10px; }
 .foot-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }

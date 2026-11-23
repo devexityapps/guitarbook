@@ -90,7 +90,7 @@ export async function findSongByMatchKey(uid: string, matchKey: string): Promise
   return snap.docs[0] ? asSong(snap.docs[0]) : null
 }
 
-export type NewSongFields = Pick<Song<Timestamp>, 'type' | 'title' | 'artist' | 'keyRoot' | 'keyMode' | 'tags' | 'status'>
+export type NewSongFields = Pick<Song<Timestamp>, 'title' | 'artist' | 'keyRoot' | 'keyMode' | 'tags' | 'status'>
 
 /**
  * Creates a song with one source (SPEC §6.4). The caller picks the id, so retrying after a failure rewrites the

@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { KEY_ROOTS, STATUSES, mergeTags, type KeyMode, type Site, type SongType, type Status } from '@shared'
+import { KEY_ROOTS, STATUSES, mergeTags, type KeyMode, type Site, type Status } from '@shared'
 import songsterrIcon from './assets/songsterr.webp'
 import ultimateGuitarIcon from './assets/ultimateguitar.png'
 
@@ -109,11 +109,11 @@ export function TagInput({ tags, onChange }: { tags: string[]; onChange: (t: str
 
 // ---- song fields (shared by "new song" and "edit") ---------------------------
 export interface SongFormValues {
-  type: SongType
   title: string
   artist: string
   keyRoot: string
-  keyMode: KeyMode
+  /** '' = not set; shown and treated as major. */
+  keyMode: KeyMode | ''
   status: Status
   tags: string[]
   notes: string
@@ -123,35 +123,32 @@ export function SongFields({ value, onChange }: { value: SongFormValues; onChang
   const set = <K extends keyof SongFormValues>(k: K, v: SongFormValues[K]) => onChange({ ...value, [k]: v })
   return (
     <div className="stack">
-      <div className="field">
-        <span className="field-label">Type</span>
-        <Chips label="Type" value={value.type} onChange={(v) => set('type', v)} options={[{ value: 'song', label: 'Song' }, { value: 'lesson', label: 'Lesson' }]} />
-      </div>
       <Field label="Title">
         <input className="input" required value={value.title} onChange={(e) => set('title', e.target.value)} />
       </Field>
       <Field label="Artist (optional)">
         <input className="input" value={value.artist} onChange={(e) => set('artist', e.target.value)} />
       </Field>
-      <div className="row">
-        <Field label="Key">
-          <select className="input" value={value.keyRoot} onChange={(e) => set('keyRoot', e.target.value)}>
-            <option value="">None</option>
-            {KEY_ROOTS.map((k) => <option key={k} value={k}>{k}</option>)}
-          </select>
-        </Field>
-        <Field label="Mode">
-          <select className="input" value={value.keyMode} disabled={!value.keyRoot} onChange={(e) => set('keyMode', e.target.value as KeyMode)}>
-            <option value="major">Major</option>
-            <option value="minor">Minor</option>
-          </select>
-        </Field>
-      </div>
       <div className="field">
         <span className="field-label">Status</span>
         <Chips label="Status" value={value.status} onChange={(v) => set('status', v)} options={STATUSES} />
       </div>
       <TagInput tags={value.tags} onChange={(t) => set('tags', t)} />
+      <div className="row">
+        <Field label="Key">
+          <select className="input" value={value.keyRoot} onChange={(e) => onChange({ ...value, keyRoot: e.target.value, keyMode: e.target.value ? value.keyMode : '' })}>
+            <option value="" aria-label="No key"></option>
+            {KEY_ROOTS.map((k) => <option key={k} value={k}>{k}</option>)}
+          </select>
+        </Field>
+        <Field label="Mode">
+          <select className="input" value={value.keyMode} disabled={!value.keyRoot} onChange={(e) => set('keyMode', e.target.value as KeyMode | '')}>
+            <option value="" aria-label="Not set (major)"></option>
+            <option value="major">Major</option>
+            <option value="minor">Minor</option>
+          </select>
+        </Field>
+      </div>
       <Field label="Notes">
         <textarea className="input" rows={3} value={value.notes} onChange={(e) => set('notes', e.target.value)} />
       </Field>
@@ -159,17 +156,17 @@ export function SongFields({ value, onChange }: { value: SongFormValues; onChang
   )
 }
 
-export const emptySongForm: SongFormValues = { type: 'song', title: '', artist: '', keyRoot: '', keyMode: 'major', status: 'wishlist', tags: [], notes: '' }
+export const emptySongForm: SongFormValues = { title: '', artist: '', keyRoot: '', keyMode: '', status: 'wishlist', tags: [], notes: '' }
 
 /** Form values -> the fields stored on the song. */
 export function songFieldsFrom(v: SongFormValues) {
   const artist = v.artist.trim()
   return {
-    type: v.type,
     title: v.title.trim(),
     artist: artist || null,
     keyRoot: v.keyRoot || null,
-    keyMode: v.keyRoot ? v.keyMode : null,
+    // A blank mode is stored as null, which reads as major (format.ts keyText).
+    keyMode: v.keyRoot && v.keyMode ? v.keyMode : null,
     status: v.status,
     tags: mergeTags([], v.tags),
     notes: v.notes.trim(),

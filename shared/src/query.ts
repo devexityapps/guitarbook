@@ -1,4 +1,4 @@
-import type { SongType, Status } from './model.ts'
+import type { Status } from './model.ts'
 import type { Site } from './types.ts'
 import { normalizeForSearch } from './text.ts'
 
@@ -10,7 +10,6 @@ export interface TimeLike {
 export interface QuerySong<T extends TimeLike = TimeLike> {
   title: string
   artist: string | null
-  type: SongType
   keyRoot: string | null
   status: Status
   tags: string[]
@@ -21,16 +20,15 @@ export interface QuerySong<T extends TimeLike = TimeLike> {
 
 export interface Filters {
   query: string
-  /** null = All (which includes Shelved). */
+  /** null = All. */
   status: Status | null
   /** Every listed tag must be on the song (AND), compared case-insensitively. */
   tags: string[]
   site: Site | null
   keyRoot: string | null
-  type: SongType | null
 }
 
-export const NO_FILTERS: Filters = { query: '', status: null, tags: [], site: null, keyRoot: null, type: null }
+export const NO_FILTERS: Filters = { query: '', status: null, tags: [], site: null, keyRoot: null }
 
 export type SortKey = 'untouched' | 'opened' | 'added' | 'az'
 
@@ -55,7 +53,6 @@ export function filterSongs<S extends QuerySong>(songs: S[], f: Filters): S[] {
   const wantTags = f.tags.map((t) => t.toLowerCase())
   return songs.filter((s) => {
     if (f.status && s.status !== f.status) return false
-    if (f.type && s.type !== f.type) return false
     if (f.keyRoot && s.keyRoot !== f.keyRoot) return false
     if (f.site && !s.sources.some((src) => src.site === f.site)) return false
     if (wantTags.length) {
@@ -111,5 +108,5 @@ export function collectTags(songs: { tags: string[] }[]): string[] {
 
 export function activeFilterCount(f: Filters, group: 'more' | 'tags'): number {
   if (group === 'tags') return f.tags.length
-  return (f.site ? 1 : 0) + (f.keyRoot ? 1 : 0) + (f.type ? 1 : 0)
+  return (f.site ? 1 : 0) + (f.keyRoot ? 1 : 0)
 }

@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { signOut } from 'firebase/auth'
 import {
   KEY_ROOTS, NO_FILTERS, SORTS, STATUSES, activeFilterCount, collectTags, filterSongs, isStale, sortSongs,
-  type Filters, type Site, type SongType, type SortKey,
+  type Filters, type Site, type SortKey,
 } from '@shared'
 import { auth } from '../firebase'
 import { useSettings, useSongs, type SongDoc } from '../data'
@@ -47,7 +47,7 @@ function siteIcon(song: SongDoc): string | undefined {
 
 function Row({ song, showThumb, staleDays, now }: { song: SongDoc; showThumb: boolean; staleDays: number; now: Date }) {
   const sites = SITE_SHORT.filter((s) => song.sources.some((src) => src.site === s.site)).map((s) => s.label)
-  const sub = [song.artist ?? (song.type === 'lesson' ? 'Lesson' : null), keyText(song.keyRoot, song.keyMode)].filter(Boolean).join(' · ')
+  const sub = [song.artist, keyText(song.keyRoot, song.keyMode)].filter(Boolean).join(' · ')
   const since = sinceOpened(song.lastOpenedAt, now)
   const stale = isStale(toDate(song.lastOpenedAt), now, staleDays)
   return (
@@ -77,6 +77,14 @@ export function Library() {
   const [filters, setFilters] = useState<Filters>(NO_FILTERS)
   const [sort, setSort] = useState<SortKey>(loadSort)
   const [sheet, setSheet] = useState<'tags' | 'more' | null>(null)
+  const [addOpen, setAddOpen] = useState(false)
+
+  useEffect(() => {
+    if (!addOpen) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setAddOpen(false) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [addOpen])
 
   const set = (patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch }))
   const all = songs ?? []
@@ -89,7 +97,9 @@ export function Library() {
   const tagCount = activeFilterCount(filters, 'tags')
   const moreCount = activeFilterCount(filters, 'more')
 
-  const statusOptions = [{ value: 'all' as const, label: 'All' }, ...STATUSES.filter((s) => s.value !== 'wishlist' && s.value !== 'shelved'), STATUSES[0]!, STATUSES[3]!]
+  // Chip order (SPEC §4.2): All, the in-progress statuses, then Wishlist.
+  const chipOrder = ['learning', 'polishing', 'canplay', 'wishlist'] as const
+  const statusOptions = [{ value: 'all' as const, label: 'All' }, ...chipOrder.map((v) => STATUSES.find((s) => s.value === v)!)]
 
   return (
     <main className="screen">
@@ -150,7 +160,14 @@ export function Library() {
         </>
       )}
 
-      <a className="fab" href="#/add"><IconPlus /> Add link</a>
+      {addOpen && <div className="add-backdrop" onClick={() => setAddOpen(false)} />}
+      {addOpen && (
+        <div className="add-menu" id="add-menu" role="menu" aria-label="Add">
+          <a role="menuitem" href="#/new">Song</a>
+          <a role="menuitem" href="#/add">Link</a>
+        </div>
+      )}
+      <button type="button" className={`fab${addOpen ? ' open' : ''}`} aria-label="Add" aria-haspopup="menu" aria-expanded={addOpen} aria-controls="add-menu" onClick={() => setAddOpen((o) => !o)}><IconPlus /></button>
 
       {sheet === 'tags' && (
         <Sheet title="Filter by tags" onClose={() => setSheet(null)}>
@@ -184,10 +201,6 @@ export function Library() {
             <span className="field-label">Site</span>
             <Chips<'any' | Site> label="Site" value={filters.site ?? 'any'} onChange={(v) => set({ site: v === 'any' ? null : v })} options={[{ value: 'any', label: 'Any' }, { value: 'youtube', label: 'YouTube' }, { value: 'ultimateguitar', label: 'UG' }, { value: 'songsterr', label: 'Songsterr' }]} />
           </div>
-          <div className="field">
-            <span className="field-label">Type</span>
-            <Chips<'any' | SongType> label="Type" value={filters.type ?? 'any'} onChange={(v) => set({ type: v === 'any' ? null : v })} options={[{ value: 'any', label: 'Any' }, { value: 'song', label: 'Songs' }, { value: 'lesson', label: 'Lessons' }]} />
-          </div>
           <label className="field">
             <span className="field-label">Key</span>
             <select className="input" value={filters.keyRoot ?? ''} onChange={(e) => set({ keyRoot: e.target.value || null })}>
@@ -196,7 +209,7 @@ export function Library() {
             </select>
           </label>
           <div className="row">
-            <button className="btn" disabled={!moreCount} onClick={() => set({ site: null, type: null, keyRoot: null })}>Clear</button>
+            <button className="btn" disabled={!moreCount} onClick={() => set({ site: null, keyRoot: null })}>Clear</button>
             <button className="btn primary" onClick={() => setSheet(null)}>Done</button>
           </div>
         </Sheet>

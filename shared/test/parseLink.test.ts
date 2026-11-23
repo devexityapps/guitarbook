@@ -34,7 +34,7 @@ run([
     name: 'yt: Artist - Song (Official Visualiser) -> performance, parenthetical stripped',
     url: 'https://www.youtube.com/watch?v=oTp9MZa2RVY',
     hint: "Joesef - Let's Stay Together (Official Visualiser) - YouTube",
-    expect: { site: 'youtube', canonicalKey: 'yt:oTp9MZa2RVY', artistGuess: 'Joesef', titleGuess: "Let's Stay Together", typeGuess: 'song', confidence: 'high' },
+    expect: { site: 'youtube', canonicalKey: 'yt:oTp9MZa2RVY', artistGuess: 'Joesef', titleGuess: "Let's Stay Together", confidence: 'high' },
   },
   {
     name: 'yt: Artist - Song (Video Oficial) -> performance',
@@ -83,7 +83,7 @@ run([
     name: 'yt: no dash -> title only, low confidence',
     url: 'https://www.youtube.com/watch?v=5jg-T4ZycH8',
     hint: 'PARA SIEMPRE - YouTube',
-    expect: { titleGuess: 'PARA SIEMPRE', artistGuess: null, typeGuess: null, confidence: 'low' },
+    expect: { titleGuess: 'PARA SIEMPRE', artistGuess: null, confidence: 'low' },
   },
   {
     name: 'yt: "Title | extra" is not split -> low',
@@ -101,7 +101,7 @@ run([
     name: 'yt: "tutorial" -> lesson, goes to Check names',
     url: 'https://www.youtube.com/watch?v=vXLE-h3N9tA',
     hint: 'PARA SIEMPRE vicente fernandez en Guitarra TUTORIAL (1/2) - YouTube',
-    expect: { typeGuess: 'lesson', artistGuess: null, confidence: 'low' },
+    expect: { artistGuess: null, confidence: 'low' },
   },
   {
     name: 'yt: "cover" -> order unreliable, goes to Check names ("Song - Artist")',
@@ -279,8 +279,8 @@ run([
   { name: 'syn yt: playlist with no video', url: 'https://www.youtube.com/playlist?list=PLabc123', expect: { site: 'youtube', canonicalKey: 'ytpl:PLabc123', ytPlaylistId: 'PLabc123' } },
   { name: 'syn yt: "Alive" is not "live"', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', hint: 'Pearl Jam - Alive - YouTube', expect: { artistGuess: 'Pearl Jam', titleGuess: 'Alive' } },
   { name: 'syn yt: youtube search page is not a source', url: 'https://www.youtube.com/results?search_query=blues+licks', expect: { site: 'other' } },
-  { name: 'syn yt: a cover lesson stays a lesson', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', hint: 'Blackbird cover guitar lesson - YouTube', expect: { typeGuess: 'lesson' } },
-  { name: 'syn yt: "how to play" -> lesson type', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', hint: 'How To Play Blackbird - YouTube', expect: { typeGuess: 'lesson', confidence: 'low' } },
+  { name: 'syn yt: a cover lesson stays a lesson', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', hint: 'Blackbird cover guitar lesson - YouTube', expect: { artistGuess: null } },
+  { name: 'syn yt: "how to play" -> no artist guess', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', hint: 'How To Play Blackbird - YouTube', expect: { confidence: 'low' } },
   { name: 'syn: pasted without a scheme', url: 'www.youtube.com/watch?v=dQw4w9WgXcQ', expect: { canonicalKey: 'yt:dQw4w9WgXcQ', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' } },
   { name: 'syn ug: same tab on two hosts has the same key', url: 'https://www.ultimate-guitar.com/tab/pretenders/back-on-the-chain-gang-chords-79556', expect: { canonicalKey: 'ug:79556' } },
   { name: 'syn ug: unknown type keeps the raw type', url: 'https://tabs.ultimate-guitar.com/tab/band/some-song-power-123456', expect: { ugType: 'power', canonicalKey: 'ug:123456' } },

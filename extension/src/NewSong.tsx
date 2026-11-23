@@ -57,7 +57,6 @@ export function NewSong({ uid, parsed, pageTitle, match, initialStatus, playback
   const [useStart, setUseStart] = useState(false)
   const [mode, setMode] = useState<'match' | 'form'>(match ? 'match' : 'form')
   const [linkTitle, setLinkTitle] = useState(cleanPageTitle(pageTitle) ?? '')
-  const [type, setType] = useState<'song' | 'lesson'>(parsed.site === 'other' || parsed.typeGuess === 'lesson' ? 'lesson' : 'song')
   const [title, setTitle] = useState(parsed.titleGuess ?? '')
   const [artist, setArtist] = useState(parsed.artistGuess ?? '')
   const [key, setKey] = useState('')
@@ -100,7 +99,7 @@ export function NewSong({ uid, parsed, pageTitle, match, initialStatus, playback
       const song = await createSong(
         uid,
         songId.current,
-        { type, title: title.trim(), artist: artist.trim() || null, keyRoot, keyMode, tags: mergeTags([], tags), status },
+        { title: title.trim(), artist: artist.trim() || null, keyRoot, keyMode, tags: mergeTags([], tags), status },
         source(),
       )
       void chrome.storage.local.set({ [LAST_STATUS_KEY]: status }).catch(() => {})
@@ -159,22 +158,15 @@ export function NewSong({ uid, parsed, pageTitle, match, initialStatus, playback
         {linkSection}
         <section className="section">
           <h2 className="eyebrow">Song</h2>
-          <div className="seg" role="group" aria-label="Type">
-            {(['song', 'lesson'] as const).map((t) => (
-              <button key={t} type="button" className={`chip${type === t ? ' on' : ''}`} aria-pressed={type === t} onClick={() => setType(t)}>
-                {t === 'song' ? 'Song' : 'Lesson'}
-              </button>
-            ))}
-          </div>
         <div className="stack">
           <Field label="Title"><input className="input" value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
-          <Field label={type === 'lesson' ? 'Artist (optional for lessons)' : 'Artist'}>
+          <Field label="Artist (optional)">
             <input className="input" value={artist} placeholder="Artist" onChange={(e) => setArtist(e.target.value)} />
           </Field>
           <div className="row">
             <Field label="Key">
               <select className="input" value={key} onChange={(e) => setKey(e.target.value)}>
-                <option value="">None</option>
+                <option value="" aria-label="No key"></option>
                 {KEY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </Field>

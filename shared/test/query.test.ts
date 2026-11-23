@@ -11,7 +11,6 @@ function song(over: Partial<QuerySong> & { title: string; created?: number; open
     id: over.title,
     title: over.title,
     artist: over.artist ?? null,
-    type: over.type ?? 'song',
     keyRoot: over.keyRoot ?? null,
     status: over.status ?? 'wishlist',
     tags: over.tags ?? [],
@@ -24,9 +23,9 @@ function song(over: Partial<QuerySong> & { title: string; created?: number; open
 const library = [
   song({ title: 'Landslide', artist: 'Fleetwood Mac', keyRoot: 'C', status: 'wishlist', created: 1 * DAY, opened: null, sources: [{ site: 'youtube', label: null }] }),
   song({ title: 'Little Wing', artist: 'Jimi Hendrix', keyRoot: 'E', status: 'canplay', created: 2 * DAY, opened: ago(40), sources: [{ site: 'youtube', label: null }, { site: 'ultimateguitar', label: 'Chords' }] }),
-  song({ title: 'Minor pentatonic: all 5 boxes', type: 'lesson', keyRoot: 'A', status: 'learning', created: 3 * DAY, opened: ago(10), tags: ['Blues', 'scales'], sources: [{ site: 'youtube', label: 'Boxes' }] }),
+  song({ title: 'Minor pentatonic: all 5 boxes', keyRoot: 'A', status: 'learning', created: 3 * DAY, opened: ago(10), tags: ['Blues', 'scales'], sources: [{ site: 'youtube', label: 'Boxes' }] }),
   song({ title: 'Pride and Joy', artist: 'Stevie Ray Vaughan', keyRoot: 'E', status: 'learning', created: 4 * DAY, opened: ago(70), tags: ['blues', 'shuffle', 'Texas blues'], sources: [{ site: 'songsterr', label: 'Guitar tab' }, { site: 'ultimateguitar', label: null }] }),
-  song({ title: 'Wonderful Tonight', artist: 'Eric Clapton', keyRoot: 'G', status: 'shelved', created: 0, opened: null, sources: [{ site: 'ultimateguitar', label: null }] }),
+  song({ title: 'Wonderful Tonight', artist: 'Eric Clapton', keyRoot: 'G', status: 'polishing', created: 0, opened: null, sources: [{ site: 'ultimateguitar', label: null }] }),
   song({ title: 'Así Es la Vida', artist: 'Elefante', status: 'canplay', created: 5 * DAY, opened: ago(20), sources: [] }),
 ]
 const titles = (xs: { title: string }[]) => xs.map((x) => x.title)
@@ -53,11 +52,11 @@ test('search: apostrophes and punctuation do not get in the way', () => {
   assert.equal(matchesQuery(s, 'together, joesef'), true)
 })
 
-test('status: All includes Shelved; a status chip is exact', () => {
+test('status: All includes every status; a status chip is exact', () => {
   assert.equal(filterSongs(library, NO_FILTERS).length, 6)
-  assert.ok(filterSongs(library, NO_FILTERS).some((s) => s.status === 'shelved'))
+  assert.ok(filterSongs(library, NO_FILTERS).some((s) => s.status === 'polishing'))
   assert.deepEqual(titles(filterSongs(library, { ...NO_FILTERS, status: 'learning' })), ['Minor pentatonic: all 5 boxes', 'Pride and Joy'])
-  assert.deepEqual(titles(filterSongs(library, { ...NO_FILTERS, status: 'shelved' })), ['Wonderful Tonight'])
+  assert.deepEqual(titles(filterSongs(library, { ...NO_FILTERS, status: 'polishing' })), ['Wonderful Tonight'])
 })
 
 test('tags: AND logic, case-insensitive', () => {
@@ -66,14 +65,13 @@ test('tags: AND logic, case-insensitive', () => {
   assert.deepEqual(titles(filterSongs(library, { ...NO_FILTERS, tags: ['blues', 'ukulele'] })), [])
 })
 
-test('more filters: site, key, type', () => {
+test('more filters: site, key', () => {
   assert.deepEqual(titles(filterSongs(library, { ...NO_FILTERS, site: 'ultimateguitar' })), ['Little Wing', 'Pride and Joy', 'Wonderful Tonight'])
   assert.deepEqual(titles(filterSongs(library, { ...NO_FILTERS, keyRoot: 'E' })), ['Little Wing', 'Pride and Joy'])
-  assert.deepEqual(titles(filterSongs(library, { ...NO_FILTERS, type: 'lesson' })), ['Minor pentatonic: all 5 boxes'])
 })
 
 test('filters combine (AND across kinds)', () => {
-  const f = { ...NO_FILTERS, status: 'learning' as const, site: 'ultimateguitar' as const, query: 'joy', tags: ['shuffle'], keyRoot: 'E', type: 'song' as const }
+  const f = { ...NO_FILTERS, status: 'learning' as const, site: 'ultimateguitar' as const, query: 'joy', tags: ['shuffle'], keyRoot: 'E' }
   assert.deepEqual(titles(filterSongs(library, f)), ['Pride and Joy'])
   assert.deepEqual(titles(filterSongs(library, { ...f, keyRoot: 'C' })), [])
   assert.deepEqual(titles(filterSongs(library, { ...f, status: 'canplay' })), [])

@@ -14,7 +14,6 @@ function detectedText(p: ParsedLink): string {
 function initialForm(p: ParsedLink): SongFormValues {
   return {
     ...emptySongForm,
-    type: p.typeGuess === 'lesson' ? 'lesson' : 'song',
     title: p.titleGuess ?? '',
     artist: p.artistGuess ?? '',
     tags: p.suggestedTags,

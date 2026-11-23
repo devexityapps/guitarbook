@@ -22,8 +22,6 @@ export interface ParsedLink {
 
   titleGuess: string | null
   artistGuess: string | null
-  /** 'lesson' when the hint has lesson words; 'song' when it looks like "Artist - Song"; else null. */
-  typeGuess: 'song' | 'lesson' | null
   suggestedTags: string[]
   /** 'low' means the name guess needs the user to look at it ("Check names" in the import). */
   confidence: Confidence

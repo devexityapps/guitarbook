@@ -36,7 +36,13 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .btn.ghost { border-color: transparent; color: var(--text-2); }
 .btn.big { min-height: 56px; font-size: 18px; border-radius: 18px; }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
-.fab { position: fixed; right: max(16px, calc(50% - 280px + 16px)); bottom: 24px; min-height: 56px; padding: 0 22px; border-radius: 999px; background: var(--amber); color: #121417; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.45); }
+.fab { position: fixed; right: max(16px, calc(50% - 280px + 16px)); bottom: 24px; z-index: 6; width: 56px; height: 56px; padding: 0; border: 0; border-radius: 999px; background: var(--amber); color: #121417; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 6px 20px rgba(0,0,0,.45); }
+.fab svg { width: 28px; height: 28px; transition: transform .15s ease; }
+.fab.open svg { transform: rotate(45deg); }
+.add-backdrop { position: fixed; inset: 0; z-index: 5; background: rgba(0,0,0,.35); }
+.add-menu { position: fixed; right: max(16px, calc(50% - 280px + 16px)); bottom: 92px; z-index: 6; min-width: 160px; display: flex; flex-direction: column; padding: 6px; border-radius: 16px; border: 1px solid var(--border); background: var(--surface); box-shadow: 0 6px 20px rgba(0,0,0,.45); }
+.add-menu a { min-height: 48px; display: flex; align-items: center; padding: 0 16px; border-radius: 10px; font-weight: 600; }
+.add-menu a:hover, .add-menu a:focus-visible { background: var(--border); outline: none; }
 
 /* forms */
 .field { display: flex; flex-direction: column; gap: 8px; }
@@ -74,7 +80,7 @@ textarea.input { resize: vertical; min-height: 88px; }
 .pill { display: inline-flex; align-items: center; min-height: 28px; padding: 0 12px; border-radius: 8px; font-size: 15px; font-weight: 600; background: #2a2f37; color: var(--text-2); }
 .pill-learning { background: #3a2c18; color: var(--amber-text); }
 .pill-canplay { background: #17342f; color: var(--teal); }
-.pill-shelved { background: transparent; border: 1px dashed var(--border); }
+.pill-polishing { background: #1b2a3d; color: #9cc3f5; }
 .pill-key { background: #2a2f37; color: var(--text); }
 
 /* song detail */

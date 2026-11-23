@@ -92,7 +92,6 @@ function parseYouTube(url: URL, hint: string | null): ParsedLink | null {
     canonicalKey: videoId ? `yt:${videoId}` : `ytpl:${playlistId}`,
     titleGuess: null,
     artistGuess: null,
-    typeGuess: null,
     suggestedTags: [],
     confidence: 'low',
   }
@@ -104,10 +103,8 @@ function parseYouTube(url: URL, hint: string | null): ParsedLink | null {
   if (playlistId) result.ytPlaylistId = playlistId
 
   if (hint) {
-    if (LESSON_WORDS.test(hint)) {
-      result.titleGuess = stripNoise(hint)
-      result.typeGuess = 'lesson'
-    } else if (COVER_WORDS.test(hint)) {
+    // Lesson and cover titles don't follow "Artist - Song", so keep the whole title and guess no artist.
+    if (LESSON_WORDS.test(hint) || COVER_WORDS.test(hint)) {
       result.titleGuess = stripNoise(hint)
     } else {
       const text = stripNoise(hint)
@@ -115,7 +112,6 @@ function parseYouTube(url: URL, hint: string | null): ParsedLink | null {
       if (dash > 0 && dash + 3 < text.length) {
         result.artistGuess = text.slice(0, dash).trim()
         result.titleGuess = stripNoise(text.slice(dash + 3).trim())
-        result.typeGuess = 'song'
         result.confidence = 'high'
       } else {
         result.titleGuess = text
@@ -182,7 +178,6 @@ function parseUltimateGuitar(url: URL, hint: string | null): ParsedLink | null {
     ugTabId: tabId,
     titleGuess,
     artistGuess,
-    typeGuess: titleGuess ? 'song' : null,
     suggestedTags: type === 'ukulele' ? ['ukulele'] : [],
     confidence: titleGuess && artistGuess ? 'high' : 'low',
   }
@@ -209,14 +204,12 @@ function parseSongsterr(url: URL, hint: string | null): ParsedLink | null {
     ssSongId: songId,
     titleGuess: null,
     artistGuess: null,
-    typeGuess: null,
     suggestedTags: [],
     confidence: 'low',
   }
   if (fromTitle) {
     result.titleGuess = fromTitle[1]!.trim()
     result.artistGuess = fromTitle[2]!.trim()
-    result.typeGuess = 'song'
     result.confidence = 'high'
   } else {
     // The slug joins artist and song with hyphens and can't be split reliably.
@@ -251,7 +244,6 @@ export function parseLink(input: string, titleHint?: string): ParsedLink | null 
     canonicalKey: `url:${normalized}`,
     titleGuess: hint,
     artistGuess: null,
-    typeGuess: null,
     suggestedTags: [],
     confidence: 'low',
   }

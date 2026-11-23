@@ -117,7 +117,7 @@ The parser already handles URLs; these are extra rules for tab titles.
   - **Non-video YouTube pages** (home, search, channel): save as site 'other' with the cleaned title. Playlist pages: per the app spec (`ytpl:` key).
 - **Ultimate Guitar:** prefer the tab title if it clearly contains song and artist. Otherwise use the URL slugs. Check the title pattern against real pages before relying on it.
 - **Songsterr:** the tab title usually separates song and artist better than the URL slug. Find the pattern from real pages; don't assume one. If unsure, prefill the whole title and leave artist empty.
-- **Any other site:** title = cleaned tab title; artist empty; type Lesson.
+- **Any other site:** title = cleaned tab title; artist empty.
 
 **Saving a page stores its tab title as the link's own `title`**, separate from the song's title (app spec §3). It is the title the user already sees, prefilled and editable in the app.
 
@@ -154,7 +154,7 @@ The parser already handles URLs; these are extra rules for tab titles.
 - **New song:** goes to the 6.4 form.
 
 ### 6.4 Not saved, new
-- **Form prefilled per §5:** type, title, artist, key (empty unless the parser found one), status (default: last used, else Wishlist), tags (parser suggestions). On YouTube, the start-time option.
+- **Form prefilled per §5:** title, artist, key (empty unless the parser found one), status (default: last used, else Wishlist), tags (parser suggestions). On YouTube, the start-time option.
 - **Save** creates the song, then switches to 6.2.
 - Nothing is written until Save is clicked.
 

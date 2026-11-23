@@ -3,8 +3,7 @@ import type { Site } from './types.ts'
 // Data model (SPEC §3). `T` is the timestamp type, so this folder needs no Firebase import:
 // the app uses Song<Timestamp>.
 
-export type SongType = 'song' | 'lesson'
-export type Status = 'wishlist' | 'learning' | 'canplay' | 'shelved'
+export type Status = 'wishlist' | 'learning' | 'polishing' | 'canplay'
 export type KeyMode = 'major' | 'minor'
 
 export interface Source<T> {
@@ -26,7 +25,6 @@ export interface Source<T> {
 }
 
 export interface Song<T> {
-  type: SongType
   title: string
   artist: string | null
   keyRoot: string | null
@@ -50,8 +48,8 @@ export const KEY_ROOTS = ['C', 'C#', 'Db', 'D', 'D#', 'Eb', 'E', 'F', 'F#', 'Gb'
 export const STATUSES: { value: Status; label: string }[] = [
   { value: 'wishlist', label: 'Wishlist' },
   { value: 'learning', label: 'Learning' },
-  { value: 'canplay', label: 'Can play' },
-  { value: 'shelved', label: 'Shelved' },
+  { value: 'polishing', label: 'Polishing' },
+  { value: 'canplay', label: 'Ready' },
 ]
 
 

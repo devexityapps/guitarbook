@@ -13,7 +13,7 @@
 **Theme:**
 - Background `#121417`, surfaces `#1C1F24`, borders `#2F343C`.
 - Text `#ECEEF1`, secondary text `#A3AAB5`.
-- Accent / amber `#F0A63A` (amber text `#F5B971`), "Can play" teal `#7FDCC6`.
+- Accent / amber `#F0A63A` (amber text `#F5B971`), "Ready" teal `#7FDCC6`.
 - Fonts: Inter for body text, Space Grotesk for headings.
 
 ---
@@ -25,7 +25,7 @@ A phone-first web app (installable PWA) for one guitarist to organize links to s
 v1 is **organization + open tracking only**. There's no review scheduling yet, but the data captured now (open events) must make it possible later.
 
 ### In scope
-- Song/lesson items with multiple links each
+- Items (a song or a lesson) with multiple links each
 - Tags, key, status, notes
 - Paste-a-link add flow with site detection, link parsing and duplicate detection
 - Tracking when each item and each link was last opened from the app
@@ -71,13 +71,12 @@ users/{uid}
   }
 
 users/{uid}/songs/{songId}
-  type: 'song' | 'lesson'
   title: string
-  artist: string | null           // null for most lessons
+  artist: string | null           // null when there is none (most lessons)
   keyRoot: string | null          // 'C','C#','Db',...,'B'
   keyMode: 'major' | 'minor' | null
   tags: string[]                  // de-duplicated case-insensitively; keep the user's casing
-  status: 'wishlist' | 'learning' | 'canplay' | 'shelved'
+  status: 'wishlist' | 'learning' | 'polishing' | 'canplay'
   notes: string
   sources: Source[]               // embedded array, not a subcollection
   createdAt: Timestamp
@@ -147,9 +146,9 @@ Single "Sign in with Google" button. After sign-in, go to Library.
 - **Header:** "Library" title, "Import" link, settings icon (sign out, export).
 - **Search:** matches title, artist, tags, source labels and link titles (case-insensitive, accent-insensitive).
 - **Filters:**
-  - Status chips: All, Learning, Can play, Wishlist, Shelved. Single-select. "All" includes Shelved items.
+  - Status chips: All, Learning, Polishing, Ready, Wishlist. Single-select.
   - "Tags" chip opens a tag picker; multi-select, AND logic.
-  - Secondary filters, behind a "More filters" control: site, key, type (song/lesson).
+  - Secondary filters, behind a "More filters" control: site, key.
 - **Count line:** "N items" reflecting active filters.
 - **Sort options:**
   - Longest untouched (default): never-opened first, then oldest `lastOpenedAt`.
@@ -164,7 +163,7 @@ Single "Sign in with Google" button. After sign-in, go to Library.
   - Songs whose links are all on one tab site (Songsterr or Ultimate Guitar) show that site's icon in that slot. Other songs with no YouTube source get a same-size neutral placeholder with a small guitar glyph, so rows line up.
   - Rules for loading the image: see §7.
 - **Navigation:** tapping a row goes to Song detail.
-- **Floating "Add link" button** goes to Add.
+- **Floating "+" button** opens a small menu: **Song** (a blank new-song form with the §4.4 song fields and no link; links are added later from Song detail) or **Link** (goes to Add).
 - **Empty state:** short text plus two buttons, "Add link" and "Import bookmarks".
 
 ### 4.3 Song detail
@@ -180,7 +179,7 @@ Single "Sign in with Google" button. After sign-in, go to Library.
 - **URL field** with paste support. On input, run the parser (§5) and show what was detected, e.g. "Ultimate Guitar · Stevie Ray Vaughan / Pride and Joy". Unknown sites are allowed with site = 'other'.
 - **If the link's `canonicalKey` already exists on any song:** say so ("Already saved on *Song*"), with a button to open that song. Don't add a duplicate.
 - **Else if the parsed title + artist match an existing song** (normalized: lowercase, strip punctuation and a leading "the"): show the "Already in your library" panel with two options, **Add to this song** (default) and **New song**.
-- **Else:** show the new-song form, prefilled from the parse: type, title, artist, key, status (default Wishlist), tags (including any tag the parser suggests, e.g. `ukulele`).
+- **Else:** show the new-song form, prefilled from the parse: title, artist, key, status (default Wishlist), tags (including any tag the parser suggests, e.g. `ukulele`).
 - **Link fields:** optional label (the link's title is kept from the page title when there is one, and can be edited from the link menu). There is no role or link-kind field.
 - **Primary button:** "Add to *Song*" or "Create song".
 - **Entered from Song detail:** skip matching and attach to that song.
@@ -212,8 +211,8 @@ Single "Sign in with Google" button. After sign-in, go to Library.
    - **Ready:** groups with a confident title and artist. Each has a checkbox, default checked.
    - **Check names:** groups needing a decision:
      - a Songsterr link whose artist/song split is unknown (editable Artist and Song fields, prefilled with a best guess)
-     - a YouTube link that could be a song or a lesson (Song / Lesson toggle)
-     - every 'other' link: the title is prefilled from the bookmark title, artist is empty, with a Song / Lesson toggle (default Lesson)
+     - a YouTube link with no artist split from its title, e.g. a lesson (editable Title and Artist fields)
+     - every 'other' link: the title is prefilled from the bookmark title, artist is empty
      - anything with no usable title
 8. **One status for all imported items** (default Wishlist).
 9. **"Import N items":** N is the number of checked groups. It writes in batches (Firestore batch limit is 500 operations), then returns to Library.
@@ -238,7 +237,7 @@ A pure function `parseLink(url: string, titleHint?: string)` returns `{ site, ca
 - **Video ID** from `watch?v=`, `youtu.be/<id>`, `/shorts/<id>`, `/embed/<id>`, `/live/<id>`.
 - **`t=` / `start=` → `ytStartSec`.** Accept `90`, `90s` and `1m30s` formats.
 - **`list=` → `ytPlaylistId`.** A playlist URL with no video is a source with canonicalKey `ytpl:<id>`.
-- **Title and artist come only from the hint** (bookmark title, minus a trailing " - YouTube"). If the hint looks like "Artist - Song", split on the first " - ". If it contains lesson words ("lesson", "how to play", "tutorial", "licks", "scale", "exercise"), the item goes to "Check names" as song-or-lesson.
+- **Title and artist come only from the hint** (bookmark title, minus a trailing " - YouTube"). If the hint looks like "Artist - Song", split on the first " - ". If it contains lesson words ("lesson", "how to play", "tutorial", "licks", "scale", "exercise"), the whole title is kept, no artist is guessed, and the item goes to "Check names".
 
 **Ultimate Guitar:** hosts `tabs.ultimate-guitar.com`, `www.ultimate-guitar.com`.
 - **Path shape:** `/tab/<artist-slug>/<song-slug>-<type>-<id>`. The artist is the first segment. The trailing `-<type>-<id>` comes off the second segment, and the rest is the song.
@@ -317,6 +316,5 @@ Each step ends with something usable. Stop after each one for the user to check.
 
 - **Product name:** Guitarbook for now. Not used in any permanent identifier.
 - **Icon:** B1, the amber chord book (see top of spec).
-- **Shelved:** not hidden from "All".
 - **Staleness threshold:** adjustable in Settings (7/14/30/60/90 days, default 30), synced per user.
 - **Thumbnails:** on by default for YouTube sources, with a placeholder for the rest and a Settings toggle to turn them off.

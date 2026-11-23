@@ -29,7 +29,9 @@ function diff(f: Form, song: SongDoc, canonicalKey: string): SongPatch | null {
   const artist = f.artist.trim() || null
   if (artist !== song.artist) patch.artist = artist
   const [root, mode] = f.key ? (f.key.split('|') as [string, KeyMode]) : [null, null]
-  if (root !== song.keyRoot || mode !== song.keyMode) { patch.keyRoot = root; patch.keyMode = mode }
+  // A null mode on a song with a key reads as major (the app saves a blank mode as null), so it isn't a change.
+  const savedMode = song.keyRoot ? (song.keyMode ?? 'major') : null
+  if (root !== song.keyRoot || mode !== savedMode) { patch.keyRoot = root; patch.keyMode = mode }
   if (f.status !== song.status) patch.status = f.status
   const tags = mergeTags([], f.tags)
   if (JSON.stringify(tags) !== JSON.stringify(song.tags)) patch.tags = tags
@@ -177,7 +179,7 @@ export function SavedSong({ uid, initial, canonicalKey, email, onSignOut, onChan
             <div className="row">
               <Field label="Key">
                 <select className="input" value={form.key} onChange={(e) => set('key', e.target.value)}>
-                  <option value="">None</option>
+                  <option value="" aria-label="No key"></option>
                   {KEY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </Field>
