@@ -27,6 +27,14 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .topbar-title { flex: 1; text-align: center; font-size: 20px; font-weight: 600; }
 .big-title { font-size: 2.1rem; font-weight: 700; }
 .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; background: none; border: 0; border-radius: 12px; color: var(--text); cursor: pointer; }
+.icon-btn.on { color: var(--amber-text); background: var(--surface); }
+/* Library header: search + menu buttons on the right, menu drops down under them */
+.topbar { position: relative; }
+.topbar-actions { display: flex; align-items: center; gap: 4px; margin-right: -8px; }
+.menu-backdrop { position: fixed; inset: 0; z-index: 9; }
+.top-menu { position: absolute; top: calc(100% - 6px); right: 12px; z-index: 10; min-width: 180px; display: flex; flex-direction: column; padding: 6px; border-radius: 16px; border: 1px solid var(--border); background: var(--surface); box-shadow: 0 6px 20px rgba(0,0,0,.45); }
+.top-menu button { min-height: 48px; display: flex; align-items: center; padding: 0 16px; border: 0; border-radius: 10px; background: none; font-weight: 600; text-align: left; cursor: pointer; }
+.top-menu button:hover, .top-menu button:focus-visible { background: var(--border); outline: none; }
 .link-btn { min-height: 44px; display: inline-flex; align-items: center; background: none; border: 0; padding: 0 4px; color: var(--amber-text); font-weight: 500; cursor: pointer; }
 
 /* buttons */

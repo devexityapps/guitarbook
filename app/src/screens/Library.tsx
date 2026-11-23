@@ -7,7 +7,7 @@ import {
 import { auth } from '../firebase'
 import { useSettings, useSongs, type SongDoc } from '../data'
 import { keyText, sinceOpened, toDate } from '../format'
-import { Chips, IconPlus, IconSearch, Sheet, SITE_ICONS, StatusPill, Thumb } from '../ui'
+import { Chips, IconMenu, IconPlus, IconSearch, Sheet, SITE_ICONS, StatusPill, Thumb } from '../ui'
 
 const SORT_KEY = 'guitarbook.sort'
 
@@ -78,13 +78,21 @@ export function Library() {
   const [sort, setSort] = useState<SortKey>(loadSort)
   const [sheet, setSheet] = useState<'status' | 'tags' | 'site' | 'key' | null>(null)
   const [addOpen, setAddOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
 
   useEffect(() => {
-    if (!addOpen) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setAddOpen(false) }
+    if (!addOpen && !menuOpen) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setAddOpen(false); setMenuOpen(false) } }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [addOpen])
+  }, [addOpen, menuOpen])
+
+  /** The search box is hidden until the search icon opens it; closing it clears the search so nothing stays filtered out of sight. */
+  const toggleSearch = () => {
+    if (searchOpen) set({ query: '' })
+    setSearchOpen(!searchOpen)
+  }
 
   const set = (patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch }))
   const all = songs ?? []
@@ -106,7 +114,24 @@ export function Library() {
     <main className="screen">
       <header className="topbar">
         <h1 className="big-title">Library</h1>
-        <button className="link-btn" onClick={() => signOut(auth)}>Sign out</button>
+        <div className="topbar-actions">
+          {all.length > 0 && (
+            <button type="button" className={`icon-btn${searchOpen ? ' on' : ''}`} aria-label={searchOpen ? 'Close search' : 'Search'} aria-expanded={searchOpen} aria-controls="library-search" onClick={toggleSearch}>
+              <IconSearch />
+            </button>
+          )}
+          <button type="button" className="icon-btn" aria-label="Menu" aria-haspopup="menu" aria-expanded={menuOpen} aria-controls="library-menu" onClick={() => setMenuOpen((o) => !o)}>
+            <IconMenu />
+          </button>
+        </div>
+        {menuOpen && (
+          <>
+            <div className="menu-backdrop" onClick={() => setMenuOpen(false)} />
+            <div className="top-menu" id="library-menu" role="menu" aria-label="Menu">
+              <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); void signOut(auth) }}>Sign out</button>
+            </div>
+          </>
+        )}
       </header>
 
       {songs === null ? (
@@ -118,12 +143,22 @@ export function Library() {
         </div>
       ) : (
         <>
-          <div className="pad">
-            <label className="search">
-              <IconSearch />
-              <input type="search" aria-label="Search songs, artists, tags" placeholder="Search songs, artists, tags" value={filters.query} onChange={(e) => set({ query: e.target.value })} />
-            </label>
-          </div>
+          {searchOpen && (
+            <div className="pad" id="library-search">
+              <label className="search">
+                <IconSearch />
+                <input
+                  type="search"
+                  autoFocus
+                  aria-label="Search songs, artists, tags"
+                  placeholder="Search songs, artists, tags"
+                  value={filters.query}
+                  onChange={(e) => set({ query: e.target.value })}
+                  onKeyDown={(e) => { if (e.key === 'Escape' && !filters.query) toggleSearch() }}
+                />
+              </label>
+            </div>
+          )}
 
           <div className="chip-scroll" role="group" aria-label="Filters">
             <button type="button" className={`chip${statusCount ? ' on-soft' : ''}`} onClick={() => setSheet('status')}>Status{statusCount ? ` · ${statusCount}` : ''}</button>

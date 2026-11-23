@@ -143,8 +143,8 @@ Phone-first (390px wide target), works at desktop width. Dark theme as in the mo
 Single "Sign in with Google" button. After sign-in, go to Library.
 
 ### 4.2 Library (home)
-- **Header:** "Library" title, "Import" link, settings icon (sign out, export).
-- **Search:** matches title, artist, tags, source labels and link titles (case-insensitive, accent-insensitive).
+- **Header:** "Library" title; on the right a search icon, then a hamburger menu. The menu holds Sign out (and Import bookmarks, Settings once those are built).
+- **Search:** the box is hidden by default; the search icon opens it with the cursor in it. Tapping the icon again (or Escape in an empty box) closes it and clears the search. Matches title, artist, tags, source labels and link titles (case-insensitive, accent-insensitive).
 - **Filters:**
   - One row of filter buttons: Status, Tags, Site, Key. Each opens its own picker sheet (with Clear and Done) and is outlined when active.
   - "Status" (Learning, Polishing, Ready, Wishlist): multi-select, OR logic (a song has one status). None picked = all statuses. Button shows a count ("Status · 2").
