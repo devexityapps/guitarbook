@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { filterSongs, sortSongs, matchesQuery, collectTags, NO_FILTERS, type QuerySong } from '../src/index.ts'
+import { filterSongs, sortSongs, matchesQuery, collectTags, suggestTags, NO_FILTERS, type QuerySong } from '../src/index.ts'
 
 const t = (ms: number | null) => (ms === null ? null : { toMillis: () => ms })
 const DAY = 86_400_000
@@ -52,11 +52,12 @@ test('search: apostrophes and punctuation do not get in the way', () => {
   assert.equal(matchesQuery(s, 'together, joesef'), true)
 })
 
-test('status: All includes every status; a status chip is exact', () => {
+test('status: none picked includes every status; picked statuses are OR', () => {
   assert.equal(filterSongs(library, NO_FILTERS).length, 6)
   assert.ok(filterSongs(library, NO_FILTERS).some((s) => s.status === 'polishing'))
-  assert.deepEqual(titles(filterSongs(library, { ...NO_FILTERS, status: 'learning' })), ['Minor pentatonic: all 5 boxes', 'Pride and Joy'])
-  assert.deepEqual(titles(filterSongs(library, { ...NO_FILTERS, status: 'polishing' })), ['Wonderful Tonight'])
+  assert.deepEqual(titles(filterSongs(library, { ...NO_FILTERS, statuses: ['learning'] })), ['Minor pentatonic: all 5 boxes', 'Pride and Joy'])
+  assert.deepEqual(titles(filterSongs(library, { ...NO_FILTERS, statuses: ['polishing'] })), ['Wonderful Tonight'])
+  assert.deepEqual(titles(filterSongs(library, { ...NO_FILTERS, statuses: ['polishing', 'wishlist'] })), ['Landslide', 'Wonderful Tonight'])
 })
 
 test('tags: AND logic, case-insensitive', () => {
@@ -71,10 +72,10 @@ test('more filters: site, key', () => {
 })
 
 test('filters combine (AND across kinds)', () => {
-  const f = { ...NO_FILTERS, status: 'learning' as const, site: 'ultimateguitar' as const, query: 'joy', tags: ['shuffle'], keyRoot: 'E' }
+  const f = { ...NO_FILTERS, statuses: ['learning' as const], site: 'ultimateguitar' as const, query: 'joy', tags: ['shuffle'], keyRoot: 'E' }
   assert.deepEqual(titles(filterSongs(library, f)), ['Pride and Joy'])
   assert.deepEqual(titles(filterSongs(library, { ...f, keyRoot: 'C' })), [])
-  assert.deepEqual(titles(filterSongs(library, { ...f, status: 'canplay' })), [])
+  assert.deepEqual(titles(filterSongs(library, { ...f, statuses: ['canplay' as const] })), [])
 })
 
 test('sort: longest untouched = never-opened first (oldest added first), then oldest opened', () => {
@@ -108,4 +109,19 @@ test('search also matches link titles', () => {
   const withTitle = song({ title: 'Wonderful Tonight', artist: 'Eric Clapton', keyRoot: 'G', status: 'learning', created: 0, opened: null, sources: [{ site: 'youtube', label: null, title: 'Slow blues rhythm lesson' }] })
   assert.equal(matchesQuery(withTitle, 'rhythm lesson'), true)
   assert.equal(matchesQuery(withTitle, 'jazz'), false)
+})
+
+test('suggestTags: word-start matches first, then contains; skips tags already on the item', () => {
+  const all = ['blues', 'Texas blues', 'scales', 'shuffle', 'bluegrass', 'Ukulele']
+  assert.deepEqual(suggestTags(all, [], 'blu'), ['blues', 'Texas blues', 'bluegrass'])
+  assert.deepEqual(suggestTags(all, ['Blues'], 'blu'), ['Texas blues', 'bluegrass'])
+  assert.deepEqual(suggestTags(all, [], 'ale'), ['scales'])
+  assert.deepEqual(suggestTags(all, [], 'UKU'), ['Ukulele'])
+  assert.deepEqual(suggestTags(all, [], 's', 2), ['scales', 'shuffle'])
+})
+
+test('suggestTags: nothing typed offers every tag the item does not have, in order', () => {
+  const all = ['blues', 'Texas blues', 'scales']
+  assert.deepEqual(suggestTags(all, ['SCALES'], '  '), ['blues', 'Texas blues'])
+  assert.deepEqual(suggestTags(all, [], '', 1), ['blues'])
 })

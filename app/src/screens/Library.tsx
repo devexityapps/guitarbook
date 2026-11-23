@@ -76,7 +76,7 @@ export function Library() {
   const { staleDays, showThumbnails } = useSettings()
   const [filters, setFilters] = useState<Filters>(NO_FILTERS)
   const [sort, setSort] = useState<SortKey>(loadSort)
-  const [sheet, setSheet] = useState<'tags' | 'more' | null>(null)
+  const [sheet, setSheet] = useState<'status' | 'tags' | 'site' | 'key' | null>(null)
   const [addOpen, setAddOpen] = useState(false)
 
   useEffect(() => {
@@ -93,13 +93,14 @@ export function Library() {
   const roots = useMemo(() => KEY_ROOTS.filter((k) => all.some((s) => s.keyRoot === k)), [all])
   const now = new Date()
 
-  const filtered = filters.query.trim() !== '' || filters.status !== null || filters.tags.length > 0 || activeFilterCount(filters, 'more') > 0
+  const statusCount = activeFilterCount(filters, 'status')
   const tagCount = activeFilterCount(filters, 'tags')
-  const moreCount = activeFilterCount(filters, 'more')
+  const siteLabel = SITE_SHORT.find((s) => s.site === filters.site)?.label
+  const filtered = filters.query.trim() !== '' || statusCount > 0 || tagCount > 0 || filters.site !== null || filters.keyRoot !== null
 
-  // Chip order (SPEC §4.2): All, the in-progress statuses, then Wishlist.
-  const chipOrder = ['learning', 'polishing', 'canplay', 'wishlist'] as const
-  const statusOptions = [{ value: 'all' as const, label: 'All' }, ...chipOrder.map((v) => STATUSES.find((s) => s.value === v)!)]
+  // Order in the status sheet (SPEC §4.2): the in-progress statuses, then Wishlist.
+  const statusOrder = ['learning', 'polishing', 'canplay', 'wishlist'] as const
+  const statusOptions = statusOrder.map((v) => STATUSES.find((s) => s.value === v)!)
 
   return (
     <main className="screen">
@@ -125,16 +126,10 @@ export function Library() {
           </div>
 
           <div className="chip-scroll" role="group" aria-label="Filters">
-            {statusOptions.map((o) => {
-              const on = o.value === 'all' ? filters.status === null : filters.status === o.value
-              return (
-                <button key={o.value} type="button" className={`chip${on ? ' on' : ''}`} aria-pressed={on} onClick={() => set({ status: o.value === 'all' ? null : o.value })}>
-                  {o.label}
-                </button>
-              )
-            })}
+            <button type="button" className={`chip${statusCount ? ' on-soft' : ''}`} onClick={() => setSheet('status')}>Status{statusCount ? ` · ${statusCount}` : ''}</button>
             <button type="button" className={`chip${tagCount ? ' on-soft' : ''}`} onClick={() => setSheet('tags')}>Tags{tagCount ? ` · ${tagCount}` : ''}</button>
-            <button type="button" className={`chip${moreCount ? ' on-soft' : ''}`} onClick={() => setSheet('more')}>More filters{moreCount ? ` · ${moreCount}` : ''}</button>
+            <button type="button" className={`chip${filters.site ? ' on-soft' : ''}`} onClick={() => setSheet('site')}>Site{siteLabel ? ` · ${siteLabel}` : ''}</button>
+            <button type="button" className={`chip${filters.keyRoot ? ' on-soft' : ''}`} onClick={() => setSheet('key')}>Key{filters.keyRoot ? ` · ${filters.keyRoot}` : ''}</button>
           </div>
 
           <div className="count-line">
@@ -169,6 +164,26 @@ export function Library() {
       )}
       <button type="button" className={`fab${addOpen ? ' open' : ''}`} aria-label="Add" aria-haspopup="menu" aria-expanded={addOpen} aria-controls="add-menu" onClick={() => setAddOpen((o) => !o)}><IconPlus /></button>
 
+      {sheet === 'status' && (
+        <Sheet title="Filter by status" onClose={() => setSheet(null)}>
+          <p className="muted small">Songs with any of the statuses you pick.</p>
+          <div className="chips">
+            {statusOptions.map((o) => {
+              const on = filters.statuses.includes(o.value)
+              return (
+                <button key={o.value} type="button" aria-pressed={on} className={`chip tag${on ? ' on' : ''}`} onClick={() => set({ statuses: on ? filters.statuses.filter((x) => x !== o.value) : [...filters.statuses, o.value] })}>
+                  {o.label}
+                </button>
+              )
+            })}
+          </div>
+          <div className="row">
+            <button className="btn" disabled={!statusCount} onClick={() => set({ statuses: [] })}>Clear</button>
+            <button className="btn primary" onClick={() => setSheet(null)}>Done</button>
+          </div>
+        </Sheet>
+      )}
+
       {sheet === 'tags' && (
         <Sheet title="Filter by tags" onClose={() => setSheet(null)}>
           {allTags.length === 0 ? (
@@ -195,21 +210,26 @@ export function Library() {
         </Sheet>
       )}
 
-      {sheet === 'more' && (
-        <Sheet title="More filters" onClose={() => setSheet(null)}>
-          <div className="field">
-            <span className="field-label">Site</span>
-            <Chips<'any' | Site> label="Site" value={filters.site ?? 'any'} onChange={(v) => set({ site: v === 'any' ? null : v })} options={[{ value: 'any', label: 'Any' }, { value: 'youtube', label: 'YouTube' }, { value: 'ultimateguitar', label: 'UG' }, { value: 'songsterr', label: 'Songsterr' }]} />
-          </div>
-          <label className="field">
-            <span className="field-label">Key</span>
-            <select className="input" value={filters.keyRoot ?? ''} onChange={(e) => set({ keyRoot: e.target.value || null })}>
-              <option value="">Any key</option>
-              {roots.map((k) => <option key={k} value={k}>{k}</option>)}
-            </select>
-          </label>
+      {sheet === 'site' && (
+        <Sheet title="Filter by site" onClose={() => setSheet(null)}>
+          <p className="muted small">Songs with at least one link on this site.</p>
+          <Chips<'any' | Site> label="Site" value={filters.site ?? 'any'} onChange={(v) => set({ site: v === 'any' ? null : v })} options={[{ value: 'any', label: 'Any' }, ...SITE_SHORT.map((s) => ({ value: s.site, label: s.label }))]} />
           <div className="row">
-            <button className="btn" disabled={!moreCount} onClick={() => set({ site: null, keyRoot: null })}>Clear</button>
+            <button className="btn" disabled={!filters.site} onClick={() => set({ site: null })}>Clear</button>
+            <button className="btn primary" onClick={() => setSheet(null)}>Done</button>
+          </div>
+        </Sheet>
+      )}
+
+      {sheet === 'key' && (
+        <Sheet title="Filter by key" onClose={() => setSheet(null)}>
+          {roots.length === 0 ? (
+            <p className="muted">No keys yet. Set a song's key on its page.</p>
+          ) : (
+            <Chips<string> label="Key" value={filters.keyRoot ?? 'any'} onChange={(v) => set({ keyRoot: v === 'any' ? null : v })} options={[{ value: 'any', label: 'Any' }, ...roots.map((k) => ({ value: k, label: k }))]} />
+          )}
+          <div className="row">
+            <button className="btn" disabled={!filters.keyRoot} onClick={() => set({ keyRoot: null })}>Clear</button>
             <button className="btn primary" onClick={() => setSheet(null)}>Done</button>
           </div>
         </Sheet>

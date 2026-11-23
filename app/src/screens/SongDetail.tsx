@@ -1,9 +1,13 @@
 import { useState } from 'react'
-import { SITE_NAMES, isStale } from '@shared'
-import { recordOpen, setSources, useSettings, useSongs, useUid, type SongDoc, type SourceDoc } from '../data'
-import { keyText, lastOpenedText, openedText, toDate } from '../format'
-import { Field, Header, IconBack, IconDots, IconOut, IconPlus, SITE_ICONS, Sheet, StatusPill, Thumb } from '../ui'
-import { goBack } from '../router'
+import { KEY_ROOTS, SITE_NAMES, STATUSES, isStale, mergeTags, type KeyMode, type Song, type Status } from '@shared'
+import type { Timestamp } from 'firebase/firestore'
+import { deleteSong, patchSong, recordOpen, setSources, useSettings, useSongs, useUid, type SongDoc, type SourceDoc } from '../data'
+import { lastOpenedText, openedText, toDate } from '../format'
+import { Field, Header, IconBack, IconDots, IconOut, IconPlus, InlineText, PillSelect, SITE_ICONS, Sheet, TagInput, Thumb } from '../ui'
+import { goBack, navigate } from '../router'
+
+const KEY_OPTIONS = [{ value: '', label: 'No key' }, ...KEY_ROOTS.map((k) => ({ value: k as string, label: k }))]
+const MODE_OPTIONS: { value: KeyMode; label: string }[] = [{ value: 'major', label: 'Major' }, { value: 'minor', label: 'Minor' }]
 
 const defaultLabel = (s: SourceDoc) => { try { return new URL(s.url).hostname.replace(/^www\./, '') } catch { return SITE_NAMES[s.site] } }
 
@@ -13,6 +17,8 @@ export function SongDetail({ id }: { id: string }) {
   const { staleDays, showThumbnails } = useSettings()
   const [menuFor, setMenuFor] = useState<string | null>(null)
   const [editing, setEditing] = useState<SourceDoc | null>(null)
+  /** An empty field the user just opened from its "+" button; it closes again if left empty. */
+  const [adding, setAdding] = useState<'tags' | 'notes' | null>(null)
 
   if (songs === null) return <main className="screen"><p className="muted pad">Loading…</p></main>
   const song = songs.find((s) => s.id === id)
@@ -26,27 +32,84 @@ export function SongDetail({ id }: { id: string }) {
   }
 
   const now = new Date()
-  const key = keyText(song.keyRoot, song.keyMode)
+  const save = (patch: Partial<Omit<Song<Timestamp>, 'sourceKeys' | 'matchKey'>>) => patchSong(uid, song, patch)
   const remove = (src: SourceDoc) => {
     if (!window.confirm('Remove this link from the song?')) return
     setSources(uid, song, song.sources.filter((s) => s.id !== src.id))
     setMenuFor(null)
   }
+  const removeSong = async () => {
+    if (!window.confirm(`Delete "${song.title}" and its open history? This can't be undone.`)) return
+    await deleteSong(uid, song.id)
+    navigate('/', true)
+  }
 
   return (
     <main className="screen">
-      <Header
-        left={<button className="icon-btn" aria-label="Back" onClick={() => goBack('/')}><IconBack /></button>}
-        right={<a className="link-btn" href={`#/song/${song.id}/edit`}>Edit</a>}
-      />
+      <Header left={<button className="icon-btn" aria-label="Back" onClick={() => goBack('/')}><IconBack /></button>} />
       <div className="pad">
-        <h1 className="song-title">{song.title}</h1>
-        {song.artist && <p className="song-artist">{song.artist}</p>}
+        <h1 className="song-title">
+          <InlineText label="Title" value={song.title} required onSave={(title) => save({ title })} />
+        </h1>
+        <InlineText className="song-artist" label="Artist" placeholder="Add artist" value={song.artist ?? ''} onSave={(a) => save({ artist: a || null })} />
+        <p className="muted small last-opened">{lastOpenedText(song.lastOpenedAt, song.openCount, now)}</p>
         <div className="pills">
-          {key && <span className="pill pill-key">Key of {song.keyMode === 'minor' ? `${song.keyRoot} minor` : song.keyRoot}</span>}
-          <StatusPill status={song.status} />
+          <PillSelect<Status> label="Status" className={`pill-${song.status}`} value={song.status} options={STATUSES} onChange={(status) => save({ status })}>
+            {STATUSES.find((s) => s.value === song.status)?.label ?? song.status}
+          </PillSelect>
         </div>
-        <p className="muted small">{lastOpenedText(song.lastOpenedAt, song.openCount, now)}</p>
+
+        {/* Empty Tags, Key and Notes show only a dashed "+ field" button, with no heading. */}
+        {song.tags.length > 0 || adding === 'tags' ? (
+          <>
+            <h2 className="section">Tags</h2>
+            <TagInput
+              label={null}
+              tags={song.tags}
+              autoFocus={adding === 'tags'}
+              onChange={(t) => { save({ tags: mergeTags([], t) }); if (t.length === 0) setAdding(null) }}
+              onBlur={(added) => { if (!added) setAdding(null) }}
+            />
+          </>
+        ) : (
+          <button type="button" className="add-field" onClick={() => setAdding('tags')}>+ tags</button>
+        )}
+
+        {song.keyRoot ? (
+          <>
+            <h2 className="section">Key</h2>
+            <div className="pills">
+              <PillSelect label="Key" className="pill-key" value={song.keyRoot} options={KEY_OPTIONS} onChange={(k) => save(k ? { keyRoot: k } : { keyRoot: null, keyMode: null })}>
+                Key of {song.keyRoot}
+              </PillSelect>
+              <PillSelect<KeyMode> label="Mode" className="pill-key" value={song.keyMode ?? 'major'} options={MODE_OPTIONS} onChange={(keyMode) => save({ keyMode })}>
+                {song.keyMode === 'minor' ? 'Minor' : 'Major'}
+              </PillSelect>
+            </div>
+          </>
+        ) : (
+          <PillSelect label="Key" className="add-field" chevron={false} value="" options={KEY_OPTIONS} onChange={(k) => { if (k) save({ keyRoot: k }) }}>
+            + key
+          </PillSelect>
+        )}
+
+        {song.notes || adding === 'notes' ? (
+          <>
+            <h2 className="section">Notes</h2>
+            <InlineText
+              className="notes"
+              label="Notes"
+              placeholder="Add notes"
+              multiline
+              autoFocus={adding === 'notes'}
+              value={song.notes}
+              onSave={(notes) => save({ notes })}
+              onDone={(v) => { if (!v) setAdding(null) }}
+            />
+          </>
+        ) : (
+          <button type="button" className="add-field" onClick={() => setAdding('notes')}>+ notes</button>
+        )}
 
         <h2 className="section">Links</h2>
         <div className="stack">
@@ -72,18 +135,7 @@ export function SongDetail({ id }: { id: string }) {
         </div>
         <a className="add-link" href={`#/add?song=${song.id}`}><IconPlus /> Add a link</a>
 
-        {song.tags.length > 0 && (
-          <>
-            <h2 className="section">Tags</h2>
-            <div className="chips">{song.tags.map((t) => <span key={t} className="chip tag static">{t}</span>)}</div>
-          </>
-        )}
-        {song.notes && (
-          <>
-            <h2 className="section">Notes</h2>
-            <p className="notes">{song.notes}</p>
-          </>
-        )}
+        <button className="btn danger delete-song" type="button" onClick={removeSong}>Delete song</button>
       </div>
 
       {menuFor && (() => {

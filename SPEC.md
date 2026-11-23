@@ -146,9 +146,11 @@ Single "Sign in with Google" button. After sign-in, go to Library.
 - **Header:** "Library" title, "Import" link, settings icon (sign out, export).
 - **Search:** matches title, artist, tags, source labels and link titles (case-insensitive, accent-insensitive).
 - **Filters:**
-  - Status chips: All, Learning, Polishing, Ready, Wishlist. Single-select.
-  - "Tags" chip opens a tag picker; multi-select, AND logic.
-  - Secondary filters, behind a "More filters" control: site, key.
+  - One row of filter buttons: Status, Tags, Site, Key. Each opens its own picker sheet (with Clear and Done) and is outlined when active.
+  - "Status" (Learning, Polishing, Ready, Wishlist): multi-select, OR logic (a song has one status). None picked = all statuses. Button shows a count ("Status · 2").
+  - "Tags": multi-select, AND logic. Button shows a count.
+  - "Site" (Any, YouTube, UG, Songsterr): single choice; songs with at least one link on that site. Button shows the pick ("Site · UG").
+  - "Key" (Any, plus only the keys used in the library): single choice. Button shows the pick ("Key · E").
 - **Count line:** "N items" reflecting active filters.
 - **Sort options:**
   - Longest untouched (default): never-opened first, then oldest `lastOpenedAt`.
@@ -167,13 +169,15 @@ Single "Sign in with Google" button. After sign-in, go to Library.
 - **Empty state:** short text plus two buttons, "Add link" and "Import bookmarks".
 
 ### 4.3 Song detail
-- **Back link.** "Edit" opens the edit form (§4.5).
-- **Header:** title, artist, key pill, status pill, "Last opened X · opened N times".
+- **Back link.** No Edit button: every field is edited in place (§4.5).
+- **Header:** title, artist, "Last opened X · opened N times", then the status pill.
+- **Section order:** Tags, Key, Notes, Links, then Delete song.
+- **Tags, Key and Notes:** with a value, a section with its heading (Key holds the key pill and the mode pill). When empty, no heading: just a dashed "+ tags" / "+ key" / "+ notes" button, and empty ones in a row sit side by side.
 - **Links section:** one large tappable card per source. Each card shows the site (uppercase label), the link's title, else the user's label, else the link's host name, a YouTube thumbnail when there is one, and "Opened X ago" / "Never opened". Stale per-link times use the same amber rule.
 - **Tapping a card** opens the URL (see §6) and logs the open.
 - **"Add a link"** goes to Add, pre-targeted to this song.
 - **Each source has a menu:** edit title and label, remove link (confirm).
-- **Tags and Notes** sections.
+- **Delete song** button at the bottom (§4.5).
 
 ### 4.4 Add link
 - **URL field** with paste support. On input, run the parser (§5) and show what was detected, e.g. "Ultimate Guitar · Stevie Ray Vaughan / Pride and Joy". Unknown sites are allowed with site = 'other'.
@@ -184,9 +188,17 @@ Single "Sign in with Google" button. After sign-in, go to Library.
 - **Primary button:** "Add to *Song*" or "Create song".
 - **Entered from Song detail:** skip matching and attach to that song.
 
-### 4.5 Edit song
-- Same fields as the new-song form.
-- Delete song (confirm). This also deletes that song's events.
+### 4.5 Editing a song (in Song detail)
+- There is no separate edit screen. Song detail shows the same fields as the new-song form, each editable where it is shown.
+- **Title, artist, notes:** look like plain text; tap to edit. Saves on leaving the field (or Enter, except in notes); Escape puts the saved value back. An empty title isn't saved. An empty artist shows "Add artist".
+- **"+ tags" / "+ notes"** open that field with the cursor in it; left empty, it goes back to the button. **"+ key"** opens the key picker directly.
+- **Key, mode, status:** each pill opens a picker and saves the choice at once. A song with a key and no mode shows Major. Choosing "No key" clears the mode too, and Key goes back to "+ key".
+- **Tags:** edited in the tag box (below); saved at once. Removing the last tag goes back to "+ tags".
+- **Tag box** (the same everywhere: here, the new-song form and Add link):
+  - The song's tags are chips inside the field, each with a circled ×, followed by the text box. Backspace in an empty text box removes the last chip. A × at the right clears all tags.
+  - On focus a dropdown opens over the page listing existing library tags the song doesn't have, most used first (scrolls past about five). Typing narrows it, ignoring case and accents: tags with a word starting with the typed text first, then ones that only contain it.
+  - Tap one (or arrow keys + Enter) to add it. Enter with nothing highlighted adds the typed text as a new tag. Escape closes the dropdown.
+- **Delete song** (confirm). This also deletes that song's events.
 
 ### 4.6 Import bookmarks
 1. **File picker** for a Chrome bookmarks export (`bookmarks_*.html`, Netscape bookmark format). Parse it in the browser, keeping the folder structure (`<H3>` folder headings and nested `<DL>` lists). Nothing is uploaded except the resulting songs. Chrome can't export a single folder, so expect the whole bookmark tree.

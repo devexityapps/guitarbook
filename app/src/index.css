@@ -99,6 +99,36 @@ textarea.input { resize: vertical; min-height: 88px; }
 .add-link { display: inline-flex; align-items: center; gap: 12px; min-height: 48px; margin-top: 20px; color: var(--amber-text); font-weight: 500; font-size: 18px; }
 .notes { white-space: pre-wrap; margin: 0; font-size: 18px; }
 
+/* in-place editing: looks like text until hovered or focused; the negative margin keeps the text aligned with the rest */
+.inline-edit { display: block; width: calc(100% + 18px); margin: 0 -9px; padding: 4px 8px; border: 1px solid transparent; border-radius: 10px; background: transparent; resize: none; overflow: hidden; line-height: inherit; }
+.inline-edit:hover { border-color: var(--border); }
+.inline-edit:focus { border-color: var(--amber); background: var(--surface); outline: none; }
+.inline-edit::placeholder { color: var(--text-2); opacity: .8; }
+.inline-edit.song-artist { margin: 4px -9px 0; }
+.inline-edit.notes { min-height: 44px; }
+.pill-select { position: relative; gap: 6px; min-height: 36px; cursor: pointer; }
+.pill-select select { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; font-size: 16px; }
+.pill-select:focus-within { outline: 2px solid var(--amber); outline-offset: 2px; }
+.pill-select svg { opacity: .7; }
+.delete-song { margin-top: 40px; width: 100%; }
+.last-opened { margin-top: 8px; }
+/* tag box: chips inside the field, a clear-all ×, and a dropdown of existing tags over the page */
+.tag-box { position: relative; --tag-chip-bg: #3a3f47; }
+.tag-field { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-height: 56px; padding: 8px 52px 8px 10px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); cursor: text; }
+.tag-field:focus-within { border-color: var(--amber); }
+.tag-field input { flex: 1; min-width: 140px; min-height: 38px; padding: 0 6px; border: 0; background: transparent; outline: none; font-size: 17px; }
+.tag-field input::placeholder { color: var(--text-2); }
+.tag-chip { display: inline-flex; align-items: center; gap: 4px; min-height: 38px; padding: 0 4px 0 14px; border-radius: 999px; background: var(--tag-chip-bg); font-weight: 500; overflow-wrap: anywhere; }
+.tag-chip button { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 999px; background: none; color: var(--text-2); cursor: pointer; }
+.tag-chip button:hover { color: var(--text); }
+.tag-clear { position: absolute; top: 6px; right: 4px; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: 0; border-radius: 12px; background: none; color: var(--text); cursor: pointer; }
+.tag-suggestions { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 8; max-height: 264px; overflow-y: auto; list-style: none; margin: 0; padding: 6px 0; border: 1px solid var(--border); border-radius: 12px; background: #17191d; box-shadow: 0 10px 28px rgba(0,0,0,.5); }
+.tag-suggestions li { display: flex; align-items: center; min-height: 52px; padding: 0 18px; font-size: 18px; cursor: pointer; overflow-wrap: anywhere; }
+.tag-suggestions li:hover, .tag-suggestions li.active { background: #2b323b; }
+/* an empty field's "+ tags" / "+ key" / "+ notes" button; consecutive ones sit side by side */
+.add-field, .pill.add-field { display: inline-flex; align-items: center; min-height: 44px; margin: 16px 8px 0 0; padding: 0 16px; border: 1px dashed var(--border); border-radius: 12px; background: transparent; color: var(--text-2); font-size: 16px; font-weight: 500; cursor: pointer; }
+.add-field:hover, .add-field:focus-within { color: var(--text); border-color: var(--text-2); }
+
 /* sheet */
 .sheet-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: flex-end; justify-content: center; z-index: 10; }
 .sheet { width: 100%; max-width: 560px; background: var(--surface); border-radius: 22px 22px 0 0; padding: 20px 16px calc(20px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 14px; border: 1px solid var(--border); }

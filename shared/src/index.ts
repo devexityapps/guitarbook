@@ -3,7 +3,7 @@ export { normalizeForSearch, normalizeForMatch, slugToTitle, titleCase } from '.
 export { findSongByKey, findMatchingSong, deriveFields, derivedFieldsStale, mergeTags, sourceFromParsed } from './library.ts'
 export { calendarDaysBetween, relativeDays, isStale } from './time.ts'
 export { KEY_ROOTS, STATUSES, SITE_NAMES, DEFAULT_SETTINGS } from './model.ts'
-export { filterSongs, sortSongs, matchesQuery, collectTags, activeFilterCount, NO_FILTERS, SORTS } from './query.ts'
+export { filterSongs, sortSongs, matchesQuery, collectTags, suggestTags, activeFilterCount, NO_FILTERS, SORTS } from './query.ts'
 export type { ParsedLink, Site, Confidence } from './types.ts'
 export type { Song, Source, Status, KeyMode, Settings } from './model.ts'
 export type { Filters, SortKey, QuerySong, TimeLike } from './query.ts'

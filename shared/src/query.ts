@@ -20,15 +20,15 @@ export interface QuerySong<T extends TimeLike = TimeLike> {
 
 export interface Filters {
   query: string
-  /** null = All. */
-  status: Status | null
+  /** The song's status must be one of these (OR: a song has one status). Empty = all statuses. */
+  statuses: Status[]
   /** Every listed tag must be on the song (AND), compared case-insensitively. */
   tags: string[]
   site: Site | null
   keyRoot: string | null
 }
 
-export const NO_FILTERS: Filters = { query: '', status: null, tags: [], site: null, keyRoot: null }
+export const NO_FILTERS: Filters = { query: '', statuses: [], tags: [], site: null, keyRoot: null }
 
 export type SortKey = 'untouched' | 'opened' | 'added' | 'az'
 
@@ -52,7 +52,7 @@ export function matchesQuery(song: QuerySong, query: string): boolean {
 export function filterSongs<S extends QuerySong>(songs: S[], f: Filters): S[] {
   const wantTags = f.tags.map((t) => t.toLowerCase())
   return songs.filter((s) => {
-    if (f.status && s.status !== f.status) return false
+    if (f.statuses.length && !f.statuses.includes(s.status)) return false
     if (f.keyRoot && s.keyRoot !== f.keyRoot) return false
     if (f.site && !s.sources.some((src) => src.site === f.site)) return false
     if (wantTags.length) {
@@ -106,7 +106,27 @@ export function collectTags(songs: { tags: string[] }[]): string[] {
   return [...counts.values()].sort((a, b) => b.n - a.n || collator.compare(a.tag, b.tag)).map((x) => x.tag)
 }
 
-export function activeFilterCount(f: Filters, group: 'more' | 'tags'): number {
-  if (group === 'tags') return f.tags.length
-  return (f.site ? 1 : 0) + (f.keyRoot ? 1 : 0)
+/** How many choices are on in a multi-select filter (shown on its Library button, e.g. "Tags · 2"). */
+export function activeFilterCount(f: Filters, group: 'tags' | 'status'): number {
+  return group === 'tags' ? f.tags.length : f.statuses.length
+}
+
+/**
+ * Existing tags to offer while typing a new one: those whose words start with the typed text come before those that
+ * merely contain it (each group keeps `allTags`' order, most used first). Tags the item already has are left out.
+ * Matching ignores case, accents and punctuation. With nothing typed, every tag the item doesn't have is offered.
+ */
+export function suggestTags(allTags: string[], have: string[], typed: string, limit = 6): string[] {
+  const q = normalizeForSearch(typed)
+  const taken = new Set(have.map((t) => t.toLowerCase()))
+  if (!q) return allTags.filter((t) => !taken.has(t.toLowerCase())).slice(0, limit)
+  const starts: string[] = []
+  const contains: string[] = []
+  for (const tag of allTags) {
+    if (taken.has(tag.toLowerCase())) continue
+    const n = normalizeForSearch(tag)
+    if (n.startsWith(q) || n.includes(` ${q}`)) starts.push(tag)
+    else if (n.includes(q)) contains.push(tag)
+  }
+  return [...starts, ...contains].slice(0, limit)
 }
