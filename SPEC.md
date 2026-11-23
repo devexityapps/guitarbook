@@ -176,7 +176,7 @@ Single "Sign in with Google" button. After sign-in, go to Library.
 - **Tags, Key and Notes:** with a value, a section with its heading (Key holds the key pill and the mode pill). When empty, no heading: just a dashed "+ tags" / "+ key" / "+ notes" button, and empty ones in a row sit side by side.
 - **Resources section** (formerly "Links"): one large tappable card per source, links and charts mixed in the order they were added. Each card shows the site (uppercase label: YOUTUBE, ULTIMATE GUITAR, SONGSTERR, OTHER or MY CHART), the title, else the user's label, else the link's host name, a YouTube thumbnail when there is one, and "Opened X ago" / "Never opened". Stale per-resource times use the same amber rule. A link card ends with the open-in-new arrow; a chart card with a page icon instead. Empty: "No resources yet."
 - **Tapping a card** opens the link or the chart viewer in a new tab (see §6 and §4.8), and logs the open either way.
-- **"+ Add"** under the cards (replacing "Add a link") opens a small menu: **Link** (goes to Add, pre-targeted to this song) or **Chart** (the chart editor for a new chart on this song, §4.8).
+- **"+ Add"** at the right of the Resources heading (replacing "Add a link" under the cards) opens a small menu: **Link** (goes to Add, pre-targeted to this song) or **Chart** (the chart editor for a new chart on this song, §4.8).
 - **Each resource has a menu:** for a link, edit title and label and remove link (confirm); for a chart, edit chart (§4.8) and remove chart (confirm; the text is deleted).
 - **Delete song** button at the bottom (§4.5).
 

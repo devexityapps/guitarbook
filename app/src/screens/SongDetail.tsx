@@ -113,7 +113,23 @@ export function SongDetail({ id }: { id: string }) {
           <button type="button" className="add-field" onClick={() => setAdding('notes')}>+ notes</button>
         )}
 
-        <h2 className="section">Resources</h2>
+        <div className="section-row">
+          <h2 className="section">Resources</h2>
+          <div className="add-resource">
+            <button type="button" className="add-link" aria-haspopup="menu" aria-expanded={addMenuOpen} aria-controls="add-resource-menu" onClick={() => setAddMenuOpen((o) => !o)}>
+              <IconPlus /> Add
+            </button>
+            {addMenuOpen && (
+              <>
+                <div className="menu-backdrop" onClick={() => setAddMenuOpen(false)} />
+                <div className="top-menu inline-menu" id="add-resource-menu" role="menu" aria-label="Add a resource" onKeyDown={(e) => { if (e.key === 'Escape') setAddMenuOpen(false) }}>
+                  <a role="menuitem" href={`#/add?song=${song.id}`}>Link</a>
+                  <a role="menuitem" href={`#${chartPath(song.id, 'new')}`}>Chart</a>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
         <div className="stack">
           {song.sources.map((src) => {
             const stale = isStale(toDate(src.lastOpenedAt), now, staleDays)
@@ -143,20 +159,6 @@ export function SongDetail({ id }: { id: string }) {
             )
           })}
           {song.sources.length === 0 && <p className="muted">No resources yet.</p>}
-        </div>
-        <div className="add-resource">
-          <button type="button" className="add-link" aria-haspopup="menu" aria-expanded={addMenuOpen} aria-controls="add-resource-menu" onClick={() => setAddMenuOpen((o) => !o)}>
-            <IconPlus /> Add
-          </button>
-          {addMenuOpen && (
-            <>
-              <div className="menu-backdrop" onClick={() => setAddMenuOpen(false)} />
-              <div className="top-menu inline-menu" id="add-resource-menu" role="menu" aria-label="Add a resource" onKeyDown={(e) => { if (e.key === 'Escape') setAddMenuOpen(false) }}>
-                <a role="menuitem" href={`#/add?song=${song.id}`}>Link</a>
-                <a role="menuitem" href={`#${chartPath(song.id, 'new')}`}>Chart</a>
-              </div>
-            </>
-          )}
         </div>
 
         <button className="btn danger delete-song" type="button" onClick={removeSong}>Delete song</button>
