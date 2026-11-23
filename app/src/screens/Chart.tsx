@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Timestamp } from 'firebase/firestore'
-import { CHART_MAX_LENGTH, chartSource, findMatchingSong, isChart } from '@shared'
+import { CHART_MAX_LENGTH, chartSource, chartTitle, findMatchingSong, isChart } from '@shared'
 import { createSong, newSongRef, newSourceId, setSources, useSongs, useUid, type SongDoc, type SourceDoc } from '../data'
 import { Field, Header, IconBack, SongFields, emptySongForm, songFieldsFrom, type SongFormValues } from '../ui'
-import { goBack, navigate } from '../router'
+import { goBack } from '../router'
 
 // The user's own charts: chord or tab text stored on the song as a resource (SPEC §4.8).
 
@@ -18,7 +18,6 @@ export function chartOpensInNewTab(): boolean {
   return !standalone
 }
 
-const DEFAULT_TITLE = 'My chart'
 const SIZE_KEY = 'guitarbook.chartFontSize'
 const SIZES = [11, 12, 13, 14, 16, 18, 20, 22, 25, 28, 32]
 const DEFAULT_SIZE = 14
@@ -151,8 +150,9 @@ function Viewer({ song, chart }: { song: SongDoc; chart: SourceDoc }) {
           <header className="topbar chart-top">
             <a className="icon-btn" href={`#/song/${song.id}`} aria-label={`Back to ${song.title}`}><IconBack /></a>
             <div className="chart-heading">
-              <h1>{chart.title || 'Chart'}</h1>
-              <p className="muted small">{song.title}{song.artist ? ` · ${song.artist}` : ''}</p>
+              <h1>{chartTitle(chart, song)}</h1>
+              {/* An untitled chart is already called by the song's title and artist, so don't repeat them. */}
+              {chart.title?.trim() && <p className="muted small">{chartTitle({}, song)}</p>}
             </div>
             <a className="link-btn" href={`#${chartPath(song.id, chart.id)}/edit`}>Edit</a>
           </header>
@@ -175,17 +175,19 @@ function Viewer({ song, chart }: { song: SongDoc; chart: SourceDoc }) {
 
 // ---- editor -----------------------------------------------------------------
 
-function ChartFields({ title, text, onTitle, onText, autoFocusText = false }: {
+function ChartFields({ title, text, onTitle, onText, untitledAs, autoFocusText = false }: {
   title: string
   text: string
   onTitle: (v: string) => void
   onText: (v: string) => void
+  /** What the chart is called if the title is left empty (the song's title and artist), shown as the placeholder. */
+  untitledAs: string
   autoFocusText?: boolean
 }) {
   return (
     <>
-      <Field label="Chart title">
-        <input className="input" value={title} maxLength={120} onChange={(e) => onTitle(e.target.value)} />
+      <Field label="Chart title (optional)">
+        <input className="input" value={title} maxLength={120} placeholder={untitledAs || 'The song’s title and artist'} onChange={(e) => onTitle(e.target.value)} />
       </Field>
       <Field label="Chart" hint={`Paste or type your chords or tab; spacing is kept exactly. Up to ${CHART_MAX_LENGTH.toLocaleString()} characters.`}>
         <textarea
@@ -218,26 +220,23 @@ export function ChartEditor({ songId, sourceId }: { songId: string; sourceId: st
 
 function Editor({ song, existing }: { song: SongDoc; existing: SourceDoc | undefined }) {
   const uid = useUid()
-  const startTitle = existing?.title ?? DEFAULT_TITLE
+  const startTitle = existing?.title ?? ''
   const startText = existing?.text ?? ''
   const [title, setTitle] = useState(startTitle)
   const [text, setText] = useState(startText)
   const dirty = title !== startTitle || text !== startText
   useUnsavedWarning(dirty)
-  const canSave = title.trim() !== '' && text.trim() !== ''
-  const back = existing ? chartPath(song.id, existing.id) : `/song/${song.id}`
+  const canSave = text.trim() !== '' // the title is optional
+  // Saving and cancelling both return to the previous view (the song, or the viewer if Edit was tapped there);
+  // with nothing to go back to, to the song.
+  const back = `/song/${song.id}`
 
   const save = (e: React.FormEvent) => {
     e.preventDefault()
     if (!canSave) return
-    if (existing) {
-      setSources(uid, song, song.sources.map((s) => (s.id === existing.id ? { ...s, title: title.trim(), text } : s)))
-      navigate(chartPath(song.id, existing.id), true)
-    } else {
-      const chart = chartSource({ id: newSourceId(), title, text, now: Timestamp.now() })
-      setSources(uid, song, [...song.sources, chart])
-      navigate(chartPath(song.id, chart.id), true)
-    }
+    if (existing) setSources(uid, song, song.sources.map((s) => (s.id === existing.id ? { ...s, title: title.trim() || null, text } : s)))
+    else setSources(uid, song, [...song.sources, chartSource({ id: newSourceId(), title, text, now: Timestamp.now() })])
+    goBack(back)
   }
   const cancel = () => {
     if (dirty && !window.confirm('Discard your changes to this chart?')) return
@@ -249,7 +248,7 @@ function Editor({ song, existing }: { song: SongDoc; existing: SourceDoc | undef
       <Header left={<button className="link-btn" type="button" onClick={cancel}>Cancel</button>} title={existing ? 'Edit chart' : 'New chart'} />
       <form className="pad stack" onSubmit={save}>
         <p className="muted">{existing ? 'On' : 'Adding to'} <strong>{song.title}</strong></p>
-        <ChartFields title={title} text={text} onTitle={setTitle} onText={setText} autoFocusText={!existing} />
+        <ChartFields title={title} text={text} onTitle={setTitle} onText={setText} untitledAs={chartTitle({}, song)} autoFocusText={!existing} />
         <button className="btn primary big" type="submit" disabled={!canSave}>Save</button>
       </form>
     </main>
@@ -262,7 +261,7 @@ export function NewChart() {
   const songs = useSongs()
   const uid = useUid()
   const [form, setForm] = useState<SongFormValues>(emptySongForm)
-  const [title, setTitle] = useState(DEFAULT_TITLE)
+  const [title, setTitle] = useState('')
   const [text, setText] = useState('')
   const [mode, setMode] = useState<'attach' | 'new'>('attach')
 
@@ -271,22 +270,17 @@ export function NewChart() {
   useEffect(() => setMode('attach'), [matchId])
   const attachTo = mode === 'attach' ? match : undefined
 
-  const dirty = form.title !== '' || form.artist !== '' || text !== '' || title !== DEFAULT_TITLE
+  const dirty = form.title !== '' || form.artist !== '' || text !== '' || title !== ''
   useUnsavedWarning(dirty)
-  const canSave = songs !== null && form.title.trim() !== '' && title.trim() !== '' && text.trim() !== ''
+  const canSave = songs !== null && form.title.trim() !== '' && text.trim() !== '' // the chart title is optional
 
   const save = (e: React.FormEvent) => {
     e.preventDefault()
     if (!canSave) return
     const chart = chartSource({ id: newSourceId(), title, text, now: Timestamp.now() })
-    if (attachTo) {
-      setSources(uid, attachTo, [...attachTo.sources, chart])
-      navigate(chartPath(attachTo.id, chart.id), true)
-      return
-    }
-    const ref = newSongRef(uid)
-    createSong(uid, ref.id, { ...songFieldsFrom(form), sources: [chart] })
-    navigate(chartPath(ref.id, chart.id), true)
+    if (attachTo) setSources(uid, attachTo, [...attachTo.sources, chart])
+    else createSong(uid, newSongRef(uid).id, { ...songFieldsFrom(form), sources: [chart] })
+    goBack('/') // back to the previous view (the Library), like Cancel
   }
   const cancel = () => {
     if (dirty && !window.confirm('Discard this chart?')) return
@@ -314,7 +308,7 @@ export function NewChart() {
         )}
 
         <h2 className="section">Chart</h2>
-        <ChartFields title={title} text={text} onTitle={setTitle} onText={setText} />
+        <ChartFields title={title} text={text} onTitle={setTitle} onText={setText} untitledAs={chartTitle({}, attachTo ?? { title: form.title.trim(), artist: form.artist.trim() || null })} />
         <button className="btn primary big" type="submit" disabled={!canSave}>{attachTo ? `Add to ${attachTo.title}` : 'Create song'}</button>
       </form>
     </main>

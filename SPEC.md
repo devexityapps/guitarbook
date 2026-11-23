@@ -92,7 +92,7 @@ Source {                          // a "resource": a link, or one of the user's 
   url: string                     // as the user gave it, minus tracking params; '' for a chart
   canonicalKey: string            // 'yt:<videoId>', 'ug:<tabId>', 'ss:<songId>', 'url:<normalized url>', or 'chart:<id>'
   label: string | null            // user's own label, e.g. "Simplified chords"
-  title?: string | null           // the link's own title (tab or bookmark title), separate from the song's title; prefilled on save, editable; absent on older links. Required for a chart.
+  title?: string | null           // the link's own title (tab or bookmark title), separate from the song's title; prefilled on save, editable; absent on older links. Optional for a chart too (null when left empty).
   text?: string                   // charts only: the chart itself, plain text, at most 50,000 characters
   ytVideoId?: string
   ytStartSec?: number             // from t= param
@@ -173,8 +173,8 @@ Single "Sign in with Google" button. After sign-in, go to Library.
 - **Back link.** No Edit button: every field is edited in place (§4.5).
 - **Header:** title, artist, "Last opened X · opened N times", then the status pill.
 - **Section order:** Tags, Key, Notes, Resources, then Delete song.
-- **Tags, Key and Notes:** with a value, a section with its heading (Key holds the key pill and the mode pill). When empty, no heading: just a dashed "+ tags" / "+ key" / "+ notes" button, and empty ones in a row sit side by side.
-- **Resources section** (formerly "Links"): one large tappable card per source, links and charts mixed in the order they were added. Each card shows the site (uppercase label: YOUTUBE, ULTIMATE GUITAR, SONGSTERR, OTHER or MY CHART), the title, else the user's label, else the link's host name, a YouTube thumbnail when there is one, and "Opened X ago" / "Never opened". Stale per-resource times use the same amber rule. A link card ends with the open-in-new arrow; a chart card with a page icon instead. Empty: "No resources yet."
+- **Tags, Key, Notes and Resources:** with a value, a section with its heading (Key holds the key pill and the mode pill). When empty, no heading: just a dashed "+ tag" / "+ key" / "+ note" / "+ resource" button, and empty ones in a row sit side by side. "+ resource" opens the same Link / Chart menu as "+ Add".
+- **Resources section** (formerly "Links"): one large tappable card per source, links and charts mixed in the order they were added. Each card shows the site (uppercase label: YOUTUBE, ULTIMATE GUITAR, SONGSTERR, OTHER or MY CHART), the title, else the user's label, else the link's host name, a YouTube thumbnail when there is one, and "Opened X ago" / "Never opened". Stale per-resource times use the same amber rule. A link card ends with the open-in-new arrow; a chart card with a page icon instead.
 - **Tapping a card** opens the link or the chart viewer in a new tab (see §6 and §4.8), and logs the open either way.
 - **"+ Add"** at the right of the Resources heading (replacing "Add a link" under the cards) opens a small menu: **Link** (goes to Add, pre-targeted to this song) or **Chart** (the chart editor for a new chart on this song, §4.8).
 - **Each resource has a menu:** for a link, edit title and label and remove link (confirm); for a chart, edit chart (§4.8) and remove chart (confirm; the text is deleted).
@@ -192,9 +192,9 @@ Single "Sign in with Google" button. After sign-in, go to Library.
 ### 4.5 Editing a song (in Song detail)
 - There is no separate edit screen. Song detail shows the same fields as the new-song form, each editable where it is shown.
 - **Title, artist, notes:** look like plain text; tap to edit. Saves on leaving the field (or Enter, except in notes); Escape puts the saved value back. An empty title isn't saved. An empty artist shows "Add artist".
-- **"+ tags" / "+ notes"** open that field with the cursor in it; left empty, it goes back to the button. **"+ key"** opens the key picker directly.
+- **"+ tag" / "+ note"** open that field with the cursor in it; left empty, it goes back to the button. **"+ key"** opens the key picker directly.
 - **Key, mode, status:** each pill opens a picker and saves the choice at once. A song with a key and no mode shows Major. Choosing "No key" clears the mode too, and Key goes back to "+ key".
-- **Tags:** edited in the tag box (below); saved at once. Removing the last tag goes back to "+ tags".
+- **Tags:** edited in the tag box (below); saved at once. Removing the last tag goes back to "+ tag".
 - **Tag box** (the same everywhere: here, the new-song form and Add link):
   - The song's tags are chips inside the field, each with a circled ×, followed by the text box. Backspace in an empty text box removes the last chip. A × at the right clears all tags.
   - On focus a dropdown opens over the page listing existing library tags the song doesn't have, most used first (scrolls past about five). Typing narrows it, ignoring case and accents: tags with a word starting with the typed text first, then ones that only contain it.
@@ -240,25 +240,26 @@ Imported sources get `lastOpenedAt: null`. Bookmark add dates are not opens.
 
 ### 4.8 Charts (the user's own chord or tab text)
 A chart is a resource that holds text instead of pointing to a page: tab or chords the user wrote, e.g. their own tab for "Kiss of Life".
-- **Stored** as a Source on the song with `site: 'chart'`, `url: ''`, `canonicalKey: 'chart:<id>'`, `title` and `text` (§3). Plain text only; spacing kept exactly.
+- **Stored** as a Source on the song with `site: 'chart'`, `url: ''`, `canonicalKey: 'chart:<id>'`, an optional `title` and the `text` (§3). Plain text only; spacing kept exactly.
+- **Name:** the chart's title, or if it has none, the song's title and artist ("Kiss of Life · Sade"; just the title when there's no artist). Used on its card, its menu and the viewer header.
 - **Opening:** a chart card opens the viewer **in a new tab**, just like a link (`<a href="#/song/<songId>/chart/<sourceId>" target="_blank" rel="noopener">`), and logs an open in the same click handler (§6). Reloading or returning to the viewer doesn't log another.
   - **Exception, installed app:** when running as an installed home-screen app (`display-mode: standalone`), open the viewer in the same window instead. On iPhone an installed app keeps its sign-in separate from Safari, so a new tab would land in Safari signed out.
 - **Viewer** (route `#/song/<songId>/chart/<sourceId>`):
-  - Header: the chart title with the song's title under it, a link to the song, an "Edit" link and a **Full screen** button.
+  - Header: the chart's name (above), with the song's title and artist under it only when the chart has its own title, a link to the song, an "Edit" link and a **Full screen** button.
   - The text in a monospace font with whitespace preserved and **no wrapping**, so chord-over-lyric lines and tab staves stay aligned. Wider lines scroll sideways.
   - **A− / A+** buttons change the text size. The size is remembered on this device (localStorage, wrapped in try/catch).
   - **Full screen:** uses the browser's Fullscreen API where it's available (desktop, Android, iPad). Where it isn't (iPhone Safari), it hides the header and the page's own chrome so the chart fills the window. Either way, a small floating "Exit full screen" button (and Escape on a keyboard) returns to normal; A−/A+ stay available as small floating buttons.
   - Keeps the screen on while open, using the Screen Wake Lock API where the browser supports it; nothing happens where it doesn't.
 - **Editor** (the same route with `/edit`, or `#/song/<songId>/chart/new`):
-  - Title field (prefilled "My chart", required) and a large monospace text box with spellcheck, autocorrect and autocapitalize off, so pasted tab isn't altered.
-  - "Save" (disabled while the title or text is empty) and "Cancel". Leaving with unsaved changes asks first.
-  - Saving a new chart adds it at the end of the song's resources and goes to its viewer. Saving an edit returns to the viewer.
+  - An optional title field (empty to start, its placeholder showing the name it will get without one) and a large monospace text box with spellcheck, autocorrect and autocapitalize off, so pasted tab isn't altered.
+  - "Save" (disabled while the text is empty) and "Cancel". Leaving with unsaved changes asks first.
+  - Saving (a new chart is added at the end of the song's resources) returns to the previous view, like Cancel: the song, or the viewer if Edit was tapped there. With nothing to go back to, it goes to the song.
 - **New song from a chart** (Library "+" → **Chart**, route `#/new/chart`):
   - One form: the new-song fields (§4.4: title, artist, status, tags, key, mode), then the chart's title and text as in the editor.
   - If the title + artist match an existing song (same normalized match as §4.4), show the "Already in your library" panel with **Add to this song** (default) and **New song**.
-  - "Save" creates the song with the chart as its first resource (or adds the chart to the matched song) and goes to the chart's viewer in the same tab.
+  - "Save" creates the song with the chart as its first resource (or adds the chart to the matched song) and returns to the previous view (the Library), like Cancel.
 - **Search** matches chart titles like link titles; the chart text isn't searched.
-- **Extension:** unaffected for lookups (a chart never matches a page). In the popup's list of the song's other resources, a chart shows as "My chart · *title*" and opens its viewer in the app in a new tab, logging an open.
+- **Extension:** unaffected for lookups (a chart never matches a page). In the popup's list of the song's other resources, a chart shows as "My chart · *title*" (just "My chart" when it has no title) and opens its viewer in the app in a new tab, logging an open.
 
 ---
 

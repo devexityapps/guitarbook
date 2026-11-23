@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { KEY_ROOTS, SITE_NAMES, STATUSES, isChart, isStale, mergeTags, type KeyMode, type Song, type Status } from '@shared'
+import { KEY_ROOTS, SITE_NAMES, STATUSES, chartTitle, isChart, isStale, mergeTags, type KeyMode, type Song, type Status } from '@shared'
 import type { Timestamp } from 'firebase/firestore'
 import { deleteSong, patchSong, recordOpen, setSources, useSettings, useSongs, useUid, type SongDoc, type SourceDoc } from '../data'
 import { lastOpenedText, openedText, toDate } from '../format'
@@ -35,11 +35,23 @@ export function SongDetail({ id }: { id: string }) {
 
   const now = new Date()
   const save = (patch: Partial<Omit<Song<Timestamp>, 'sourceKeys' | 'matchKey'>>) => patchSong(uid, song, patch)
+  /** A resource's display name: a chart's title (else the song's title and artist), or a link's title, label or host. */
+  const name = (src: SourceDoc) => (isChart(src) ? chartTitle(src, song) : src.title || src.label || defaultLabel(src))
   const remove = (src: SourceDoc) => {
     if (!window.confirm(isChart(src) ? 'Remove this chart from the song? Its text will be deleted.' : 'Remove this link from the song?')) return
     setSources(uid, song, song.sources.filter((s) => s.id !== src.id))
     setMenuFor(null)
   }
+  /** The Link / Chart menu under "+ Add" (aligned to its right end) or "+ resource" (aligned to its start). */
+  const addMenu = (align: 'start' | 'end') => (
+    <>
+      <div className="menu-backdrop" onClick={() => setAddMenuOpen(false)} />
+      <div className={`top-menu inline-menu${align === 'start' ? ' start' : ''}`} id="add-resource-menu" role="menu" aria-label="Add a resource" onKeyDown={(e) => { if (e.key === 'Escape') setAddMenuOpen(false) }}>
+        <a role="menuitem" href={`#/add?song=${song.id}`}>Link</a>
+        <a role="menuitem" href={`#${chartPath(song.id, 'new')}`}>Chart</a>
+      </div>
+    </>
+  )
   const removeSong = async () => {
     if (!window.confirm(`Delete "${song.title}" and its open history? This can't be undone.`)) return
     await deleteSong(uid, song.id)
@@ -74,7 +86,7 @@ export function SongDetail({ id }: { id: string }) {
             />
           </>
         ) : (
-          <button type="button" className="add-field" onClick={() => setAdding('tags')}>+ tags</button>
+          <button type="button" className="add-field" onClick={() => setAdding('tags')}>+ tag</button>
         )}
 
         {song.keyRoot ? (
@@ -110,56 +122,59 @@ export function SongDetail({ id }: { id: string }) {
             />
           </>
         ) : (
-          <button type="button" className="add-field" onClick={() => setAdding('notes')}>+ notes</button>
+          <button type="button" className="add-field" onClick={() => setAdding('notes')}>+ note</button>
         )}
 
-        <div className="section-row">
-          <h2 className="section">Resources</h2>
+        {/* Like Tags, Key and Notes: with no resources, just a dashed "+ resource" button that opens the Link / Chart menu. */}
+        {song.sources.length === 0 ? (
           <div className="add-resource">
-            <button type="button" className="add-link" aria-haspopup="menu" aria-expanded={addMenuOpen} aria-controls="add-resource-menu" onClick={() => setAddMenuOpen((o) => !o)}>
-              <IconPlus /> Add
+            <button type="button" className="add-field" aria-haspopup="menu" aria-expanded={addMenuOpen} aria-controls="add-resource-menu" onClick={() => setAddMenuOpen((o) => !o)}>
+              + resource
             </button>
-            {addMenuOpen && (
-              <>
-                <div className="menu-backdrop" onClick={() => setAddMenuOpen(false)} />
-                <div className="top-menu inline-menu" id="add-resource-menu" role="menu" aria-label="Add a resource" onKeyDown={(e) => { if (e.key === 'Escape') setAddMenuOpen(false) }}>
-                  <a role="menuitem" href={`#/add?song=${song.id}`}>Link</a>
-                  <a role="menuitem" href={`#${chartPath(song.id, 'new')}`}>Chart</a>
-                </div>
-              </>
-            )}
+            {addMenuOpen && addMenu('start')}
           </div>
-        </div>
-        <div className="stack">
-          {song.sources.map((src) => {
-            const stale = isStale(toDate(src.lastOpenedAt), now, staleDays)
-            const chart = isChart(src)
-            // Links and charts both open in a new tab and log the open (SPEC §6, §4.8); in the installed app a chart opens in place.
-            const newTab = !chart || chartOpensInNewTab()
-            return (
-              <div key={src.id} className="card source">
-                <a
-                  className="source-link"
-                  href={chart ? `#${chartPath(song.id, src.id)}` : src.url}
-                  target={newTab ? '_blank' : undefined}
-                  rel="noopener"
-                  onClick={() => recordOpen(uid, song, src.id)}
-                >
-                  {showThumbnails && src.site === 'youtube' && src.ytVideoId && <Thumb videoId={src.ytVideoId} />}
-                  {SITE_ICONS[src.site] && <img className="site-icon" src={SITE_ICONS[src.site]} width={40} height={40} alt="" />}
-                  <div className="source-body">
-                    <div className="eyebrow">{SITE_NAMES[src.site]}{src.title && src.label ? ` · ${src.label}` : ''}</div>
-                    <div className="source-label">{src.title || src.label || defaultLabel(src)}</div>
-                    <div className={`source-opened${stale ? ' stale' : ''}`}>{openedText(src.lastOpenedAt, now)}</div>
-                  </div>
-                  {chart ? <IconPage /> : <IconOut />}
-                </a>
-                <button className="icon-btn" aria-label={`Options for ${src.title || src.label || defaultLabel(src)}`} onClick={() => setMenuFor(src.id)}><IconDots /></button>
+        ) : (
+          <>
+            <div className="section-row">
+              <h2 className="section">Resources</h2>
+              <div className="add-resource">
+                <button type="button" className="add-link" aria-haspopup="menu" aria-expanded={addMenuOpen} aria-controls="add-resource-menu" onClick={() => setAddMenuOpen((o) => !o)}>
+                  <IconPlus /> Add
+                </button>
+                {addMenuOpen && addMenu('end')}
               </div>
-            )
-          })}
-          {song.sources.length === 0 && <p className="muted">No resources yet.</p>}
-        </div>
+            </div>
+            <div className="stack">
+              {song.sources.map((src) => {
+                const stale = isStale(toDate(src.lastOpenedAt), now, staleDays)
+                const chart = isChart(src)
+                // Links and charts both open in a new tab and log the open (SPEC §6, §4.8); in the installed app a chart opens in place.
+                const newTab = !chart || chartOpensInNewTab()
+                return (
+                  <div key={src.id} className="card source">
+                    <a
+                      className="source-link"
+                      href={chart ? `#${chartPath(song.id, src.id)}` : src.url}
+                      target={newTab ? '_blank' : undefined}
+                      rel="noopener"
+                      onClick={() => recordOpen(uid, song, src.id)}
+                    >
+                      {showThumbnails && src.site === 'youtube' && src.ytVideoId && <Thumb videoId={src.ytVideoId} />}
+                      {SITE_ICONS[src.site] && <img className="site-icon" src={SITE_ICONS[src.site]} width={40} height={40} alt="" />}
+                      <div className="source-body">
+                        <div className="eyebrow">{SITE_NAMES[src.site]}{src.title && src.label ? ` · ${src.label}` : ''}</div>
+                        <div className="source-label">{name(src)}</div>
+                        <div className={`source-opened${stale ? ' stale' : ''}`}>{openedText(src.lastOpenedAt, now)}</div>
+                      </div>
+                      {chart ? <IconPage /> : <IconOut />}
+                    </a>
+                    <button className="icon-btn" aria-label={`Options for ${name(src)}`} onClick={() => setMenuFor(src.id)}><IconDots /></button>
+                  </div>
+                )
+              })}
+            </div>
+          </>
+        )}
 
         <button className="btn danger delete-song" type="button" onClick={removeSong}>Delete song</button>
       </div>
@@ -168,7 +183,7 @@ export function SongDetail({ id }: { id: string }) {
         const src = song.sources.find((s) => s.id === menuFor)
         if (!src) return null
         return (
-          <Sheet title={src.title || src.label || defaultLabel(src)} onClose={() => setMenuFor(null)}>
+          <Sheet title={name(src)} onClose={() => setMenuFor(null)}>
             {isChart(src) ? (
               <>
                 <button className="btn" onClick={() => navigate(`${chartPath(song.id, src.id)}/edit`)}>Edit chart</button>

@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { findSongByKey, findMatchingSong, deriveFields, derivedFieldsStale, mergeTags, sourceFromParsed, chartSource, isChart, parseLink, relativeDays, calendarDaysBetween, isStale } from '../src/index.ts'
+import { findSongByKey, findMatchingSong, deriveFields, derivedFieldsStale, mergeTags, sourceFromParsed, chartSource, isChart, chartTitle, parseLink, relativeDays, calendarDaysBetween, isStale } from '../src/index.ts'
 
 const songs = [
   { id: 'a', title: 'Pride and Joy', artist: 'Stevie Ray Vaughan', sources: [{ canonicalKey: 'ug:123' }] },
@@ -98,4 +98,12 @@ test('chartSource: a chart resource with no URL, keyed chart:<id>, text kept exa
   assert.equal(isChart(c), true)
   assert.equal(isChart({ site: 'youtube' }), false)
   assert.deepEqual(deriveFields({ title: 'Kiss of Life', artist: 'Sade', sources: [c] }).sourceKeys, ['chart:c1'])
+})
+
+test('chart title is optional: empty becomes null, and the song title + artist stand in for it', () => {
+  const untitled = chartSource({ id: 'c2', title: '   ', text: 'Am', now: 1 })
+  assert.equal(untitled.title, null)
+  assert.equal(chartTitle(untitled, { title: 'Kiss of Life', artist: 'Sade' }), 'Kiss of Life · Sade')
+  assert.equal(chartTitle(untitled, { title: 'Scale drills', artist: null }), 'Scale drills')
+  assert.equal(chartTitle({ title: 'Intro tab' }, { title: 'Kiss of Life', artist: 'Sade' }), 'Intro tab')
 })

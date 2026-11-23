@@ -92,7 +92,7 @@ export function derivedFieldsStale(song: {
   )
 }
 
-/** A new chart resource (SPEC §4.8): site 'chart', no URL, canonicalKey 'chart:<id>'. Title and text are kept as given, except the title is trimmed. */
+/** A new chart resource (SPEC §4.8): site 'chart', no URL, canonicalKey 'chart:<id>'. The text is kept exactly; the title is trimmed, and empty becomes null. */
 export function chartSource<T>(opts: { id: string; title: string; text: string; now: T }): Source<T> {
   return {
     id: opts.id,
@@ -100,7 +100,7 @@ export function chartSource<T>(opts: { id: string; title: string; text: string; 
     url: '',
     canonicalKey: `chart:${opts.id}`,
     label: null,
-    title: opts.title.trim(),
+    title: opts.title.trim() || null,
     text: opts.text,
     addedAt: opts.now,
     lastOpenedAt: null,
@@ -109,3 +109,8 @@ export function chartSource<T>(opts: { id: string; title: string; text: string; 
 
 /** True for the user's own chart (SPEC §4.8), as opposed to a link. */
 export const isChart = (s: { site: string }) => s.site === 'chart'
+
+/** What a chart is called (SPEC §4.8): its own title, else the song's title and artist ("Kiss of Life · Sade"). */
+export function chartTitle(chart: { title?: string | null }, song: { title: string; artist: string | null }): string {
+  return chart.title?.trim() || [song.title, song.artist].filter(Boolean).join(' · ')
+}

@@ -1,6 +1,6 @@
 export { parseLink, parseTimeParam, cleanPageTitle } from './parseLink.ts'
 export { normalizeForSearch, normalizeForMatch, slugToTitle, titleCase } from './text.ts'
-export { findSongByKey, findMatchingSong, deriveFields, derivedFieldsStale, mergeTags, sourceFromParsed, chartSource, isChart } from './library.ts'
+export { findSongByKey, findMatchingSong, deriveFields, derivedFieldsStale, mergeTags, sourceFromParsed, chartSource, isChart, chartTitle } from './library.ts'
 export { calendarDaysBetween, relativeDays, isStale } from './time.ts'
 export { KEY_ROOTS, STATUSES, SITE_NAMES, DEFAULT_SETTINGS, CHART_MAX_LENGTH } from './model.ts'
 export { filterSongs, sortSongs, matchesQuery, collectTags, suggestTags, activeFilterCount, NO_FILTERS, SORTS } from './query.ts'
