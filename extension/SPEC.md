@@ -40,9 +40,9 @@ A toolbar popup for saving the page you're on to Guitarbook and editing what's a
 | Permission | Why |
 |---|---|
 | `activeTab` | Read the current tab's URL and title when the popup opens. Grants nothing until the user clicks the icon. |
-| `scripting` | YouTube only: read the video's current playback position to offer a start time (§5). Only works on the active tab after a click, via `activeTab`. |
+| `scripting` | Read the YouTube video's current playback position to offer a start time (§5), and on other pages check whether the page is plain text and read that text to offer saving it as a chart (§5.1). Only works on the active tab after a click, via `activeTab`. |
 | `offscreen` | Google sign-in (§3). |
-| `storage` | Remember UI preferences (e.g. last-used status). |
+| `storage` | Pass sign-in progress and errors between the popup and the background worker (§3). |
 
 No `tabs`, no `history`, no host permissions.
 
@@ -95,7 +95,7 @@ users/{uid}/songs/{songId}
 
 When the popup opens:
 1. **Get the tab's `url` and `title`** via `activeTab`.
-2. **Skip pages that can't be saved:** if the URL isn't http(s) (`chrome://`, the Web Store, `file:`, new tab page), show "Guitarbook can't save this page." with only the "Open library" button.
+2. **Skip pages that can't be saved:** if the URL isn't http(s) (`chrome://`, the Web Store, new tab page), show "Guitarbook can't save this page." with only the "Open library" button. The exception is a local `file:` page that is plain text, which can be saved as a chart (§5.1).
 3. **Parse:** run the shared `parseLink(url, titleHint)` from `shared/`, with the tab title as the hint. It returns site, canonical key, title and artist guesses, and suggested tags.
 4. **Look up:**
    - query `sourceKeys array-contains canonicalKey` → saved (§6.2)
@@ -121,7 +121,17 @@ The parser already handles URLs; these are extra rules for tab titles.
 
 **Saving a page stores its tab title as the link's own `title`**, separate from the song's title (app spec §3). It is the title the user already sees, prefilled and editable in the app.
 
-**Never read page content beyond what's listed here.** No scraping of tab text, chords, lyrics, comments or video descriptions. URL, tab title and (YouTube only) playback position are all the extension reads.
+**Never read page content beyond what's listed here.** No scraping of tab text, chords, lyrics, comments or video descriptions. URL, tab title, (YouTube only) playback position and (plain-text pages only, §5.1) the page's text are all the extension reads.
+
+### 5.1 Plain-text pages (save as a chart)
+A text file the user opens in Chrome, local (`file:///…/Kiss of Life.txt`) or on the web, can be saved as one of their own charts (app SPEC §4.8) instead of as a link.
+- **Detect:** on a `file:` page, or an http(s) page the parser calls site 'other' (never YouTube, UG or Songsterr), the popup runs one `chrome.scripting.executeScript` that returns the page's text only if `document.contentType === 'text/plain'` (the `<pre>` Chrome renders the file in, so spacing is exact), else nothing.
+- **Local files:** Chrome only lets an extension run on `file:` pages when "Allow access to file URLs" is on for it. If the script fails on a `file:` page, show "To save local files, turn on 'Allow access to file URLs' for Guitarbook," with a button that opens its page in `chrome://extensions`.
+- **Too long:** text over 50,000 characters can't be saved as a chart; say so (a web page can still be saved as a link).
+- **Which file:** the chart keeps the file's URL as its `url` and gets the key `chart:<url>` (http(s) URLs normalized as the parser does; `file:` URLs without the fragment), so the popup finds it again with the usual `sourceKeys` query.
+- **Guess from the file name:** without the extension, underscores read as spaces, split on the first " - " as "Artist - Song" (like YouTube titles); with no " - ", the whole name is the title.
+- **Then:** look up `chart:<url>` → already saved as a chart (§6.7). Otherwise load the song list for the song picker (§6.6; only on text pages, from the offline cache when it can) → §6.6.
+- This is the only time the extension reads a page's text, and it's always a page the user opened and chose to save.
 
 ---
 
@@ -155,12 +165,31 @@ The parser already handles URLs; these are extra rules for tab titles.
 - **New song:** goes to the 6.4 form.
 
 ### 6.4 Not saved, new
-- **Form prefilled per §5:** title, artist, key (empty unless the parser found one), status (default: last used, else Wishlist), tags (parser suggestions). On YouTube, the start-time option.
+- **Form prefilled per §5:** title, artist, key (empty unless the parser found one), status (default: always Wishlist), tags (parser suggestions). On YouTube, the start-time option.
 - **Save** creates the song, then switches to 6.2.
 - Nothing is written until Save is clicked.
 
 ### 6.5 Can't save this page
 See §5 step 2.
+
+### 6.6 Plain-text page, not saved as a chart yet (§5.1)
+- **Order, top to bottom:** song, chart title, then the chart's text.
+- **Song:** one typeahead text box, and no other song fields.
+  - Typing lists the user's songs that match (title words first, then artist, then anywhere; title with artist under it). Picking one adds the chart to that song.
+  - If the box holds an existing song's title (picked, or typed exactly, same normalization as the duplicate-song match), the chart goes to that song, and an icon in the box opens the song in the app in a new tab.
+  - Otherwise whatever is typed becomes the title of a new song (no artist, key or tags; status Wishlist).
+  - Starts with the song the file name points to (title and artist, else title alone), or else the guessed title.
+  - A line under the box says which: "Adds the chart to this song by *Artist*" or "Creates a new song with this title".
+- **Chart title** (optional; its placeholder shows the name it gets without one: the song's title and artist).
+- **Chart text:** labelled "Chart text · *file name*": the first lines of the text, monospace, not wrapped, in a short scrolling box.
+- **Save** ("Add to *Song*" or "Save chart to Guitarbook") adds the chart, creating the song if needed, and switches to §6.7. Nothing is written until then.
+- **"Save as a link instead"** (web pages only) switches to the normal link flow (§6.2–6.4) for this page.
+
+### 6.7 Plain-text page already saved as a chart
+- **Banner:** "Saved as a chart on *Song title*", plus the chart's name and "Last opened X".
+- **If the file's text differs from the chart's:** "This file has changed since it was saved," with **Replace the chart's text** (replaces only the text, keeping the title; any edits made in the app are overwritten, so say that next to the button). Otherwise "Up to date with this file."
+- **Open chart** opens the chart's viewer in the app in a new tab and logs an open, like the other resources (§6.2).
+- **Footer:** **Open in library** goes to the song.
 
 ### Errors
 - **Offline / Firestore unavailable:** "Can't reach Guitarbook right now." Keep the form contents, and allow retry.
@@ -196,9 +225,11 @@ Stop after each step for the user to check.
    - **Check:** on 10 real pages across the three sites plus one other site, the prefill is right or easy to fix; matching an existing song offers to attach.
 6. **YouTube start-time option, errors, polish.**
    - **Check:** the start time saved from a lesson opens the video at that point from the app.
+7. **Text files as charts** (§5.1, §6.6, §6.7; needs the app's charts, app SPEC §4.8).
+   - **Check:** turn on "Allow access to file URLs"; open a local `.txt` chart named "Artist - Song.txt"; the popup offers "Save as a chart" with that song picked if it exists (open icon shown), else the title filled in; try picking another song and typing a new title; save; it shows as a chart in the app with spacing intact. Edit the file, reload it, and the popup offers to replace the chart's text. With file access off, the popup explains how to turn it on. A web `.txt` offers both chart and "Save as a link instead".
 
 ---
 
 ## 10. Open decisions (ask the user)
 - The keyboard shortcut (default Alt+Shift+G).
-- Whether status should default to "last used" or always Wishlist.
+- ~~Whether status should default to "last used" or always Wishlist.~~ Decided: always Wishlist.

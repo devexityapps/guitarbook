@@ -84,3 +84,18 @@ h1 { margin: 0 0 8px; font-size: 18px; font-weight: 600; }
 .banner .row .btn { padding: 0 8px; white-space: nowrap; }
 .section.first { border-top: 0; margin-top: 0; padding-top: 0; }
 .banner.match { margin-top: 16px; }
+
+/* §6.6: the first lines of a text file being saved as a chart. Monospace and unwrapped, like the app's chart viewer. */
+.chart-preview { display: flex; flex-direction: column; gap: 4px; }
+.chart-preview pre { margin: 0; max-height: 180px; overflow: auto; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); white-space: pre; font: 13px/1.35 ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Roboto Mono', monospace; }
+.section .link { align-self: flex-start; }
+
+/* §6.6: the one song field: pick an existing song or type a new title */
+.song-picker { position: relative; }
+.song-picker .input { padding-right: 44px; }
+.song-open { position: absolute; top: 0; right: 0; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #f5b971; border-radius: 12px; }
+.song-open:hover, .song-open:focus-visible { background: var(--border); outline: none; }
+.song-suggestions { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 5; max-height: 220px; overflow-y: auto; list-style: none; margin: 0; padding: 4px 0; border: 1px solid var(--border); border-radius: 12px; background: #17191d; box-shadow: 0 8px 24px rgba(0,0,0,.5); }
+.song-suggestions li { display: flex; flex-direction: column; padding: 8px 12px; cursor: pointer; }
+.song-suggestions li:hover, .song-suggestions li.active { background: #2b323b; }
+.song-suggestion-title { font-weight: 500; overflow-wrap: anywhere; }

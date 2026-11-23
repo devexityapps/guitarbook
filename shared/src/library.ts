@@ -1,6 +1,7 @@
 import type { Source } from './model.ts'
+import { parseLink } from './parseLink.ts'
 import type { ParsedLink } from './types.ts'
-import { normalizeForMatch } from './text.ts'
+import { normalizeForMatch, normalizeForSearch } from './text.ts'
 
 interface SongLike {
   id: string
@@ -113,4 +114,68 @@ export const isChart = (s: { site: string }) => s.site === 'chart'
 /** What a chart is called (SPEC §4.8): its own title, else the song's title and artist ("Kiss of Life · Sade"). */
 export function chartTitle(chart: { title?: string | null }, song: { title: string; artist: string | null }): string {
   return chart.title?.trim() || [song.title, song.artist].filter(Boolean).join(' · ')
+}
+
+/**
+ * The key for a chart saved from a text file (extension SPEC §5.1): 'chart:' + the file's URL, so saving the same
+ * file again finds its chart. http(s) URLs are normalized as the parser does; others (file:) only lose the fragment.
+ */
+export function chartKeyForFile(url: string): string {
+  return `chart:${fileUrlForChart(url)}`
+}
+
+function fileUrlForChart(url: string): string {
+  if (/^https?:\/\//i.test(url)) return parseLink(url)?.url ?? url
+  return url.split('#')[0]!
+}
+
+/** A chart saved from a text file: like chartSource, but it keeps the file's URL and is keyed by it. */
+export function fileChartSource<T>(opts: { id: string; url: string; title: string; text: string; now: T }): Source<T> {
+  return { ...chartSource(opts), url: fileUrlForChart(opts.url), canonicalKey: chartKeyForFile(opts.url) }
+}
+
+/** The file's name without folders or extension, underscores read as spaces: ".../Sade%20-%20Kiss_of_Life.txt" → "Sade - Kiss of Life". */
+export function fileBaseName(url: string): string {
+  let path = url.split(/[?#]/)[0]!
+  path = path.slice(path.lastIndexOf('/') + 1)
+  try {
+    path = decodeURIComponent(path)
+  } catch {
+    /* keep it as it is */
+  }
+  return path.replace(/\.[A-Za-z0-9]{1,5}$/, '').replace(/_/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+/** Title and artist guessed from a text file's name, read as "Artist - Song" (like YouTube titles); else all of it is the title. */
+export function guessFromFileName(url: string): { titleGuess: string | null; artistGuess: string | null } {
+  const name = fileBaseName(url)
+  const dash = name.indexOf(' - ')
+  if (dash > 0 && dash + 3 < name.length) return { artistGuess: name.slice(0, dash).trim(), titleGuess: name.slice(dash + 3).trim() }
+  return { titleGuess: name || null, artistGuess: null }
+}
+
+/**
+ * Songs to offer as you type in a song picker (extension SPEC §6.6): titles with a word starting with the typed text
+ * first, then artists that do, then titles or artists that only contain it. Each group keeps the order of `songs`.
+ * Matching ignores case, accents and punctuation. Nothing typed suggests nothing.
+ */
+export function suggestSongs<S extends { title: string; artist: string | null }>(songs: S[], typed: string, limit = 6): S[] {
+  const q = normalizeForSearch(typed)
+  if (!q) return []
+  const wordStart = (s: string) => s.startsWith(q) || s.includes(` ${q}`)
+  const groups: S[][] = [[], [], []]
+  for (const song of songs) {
+    const title = normalizeForSearch(song.title)
+    const artist = normalizeForSearch(song.artist ?? '')
+    if (wordStart(title)) groups[0]!.push(song)
+    else if (wordStart(artist)) groups[1]!.push(song)
+    else if (title.includes(q) || artist.includes(q)) groups[2]!.push(song)
+  }
+  return groups.flat().slice(0, limit)
+}
+
+/** The song whose title is exactly this one (same normalization as the duplicate-song match, SPEC §4.4), if any. */
+export function findSongByTitle<S extends { title: string }>(songs: S[], title: string): S | undefined {
+  const t = normalizeForMatch(title)
+  return t ? songs.find((s) => normalizeForMatch(s.title) === t) : undefined
 }

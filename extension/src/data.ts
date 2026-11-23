@@ -1,5 +1,5 @@
 import {
-  Timestamp, collection, doc, getCountFromServer, getDocsFromServer, increment, limit, query, setDoc, updateDoc, where, writeBatch,
+  Timestamp, collection, doc, getCountFromServer, getDocs, getDocsFromServer, increment, limit, query, setDoc, updateDoc, where, writeBatch,
 } from 'firebase/firestore'
 import { deriveFields, type Song } from '@shared'
 import { db } from './firebase'
@@ -112,4 +112,13 @@ export async function createSong(uid: string, id: string, fields: NewSongFields,
   }
   await withTimeout(setDoc(ref, data))
   return { ...data, id: ref.id }
+}
+
+/**
+ * Every song, for the song picker on a text file (SPEC §6.6), A–Z by title. Unlike the lookups above it may come
+ * from the offline cache, so it's quick after the first time; a song saved moments ago elsewhere may be missing.
+ */
+export async function listSongs(uid: string): Promise<SongDoc[]> {
+  const snap = await getDocs(songsOf(uid))
+  return snap.docs.map(asSong).sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base', numeric: true }))
 }

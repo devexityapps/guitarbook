@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { findSongByKey, findMatchingSong, deriveFields, derivedFieldsStale, mergeTags, sourceFromParsed, chartSource, isChart, chartTitle, parseLink, relativeDays, calendarDaysBetween, isStale } from '../src/index.ts'
+import { findSongByKey, findMatchingSong, deriveFields, derivedFieldsStale, mergeTags, sourceFromParsed, chartSource, isChart, chartTitle, chartKeyForFile, fileChartSource, fileBaseName, guessFromFileName, suggestSongs, findSongByTitle, parseLink, relativeDays, calendarDaysBetween, isStale } from '../src/index.ts'
 
 const songs = [
   { id: 'a', title: 'Pride and Joy', artist: 'Stevie Ray Vaughan', sources: [{ canonicalKey: 'ug:123' }] },
@@ -106,4 +106,44 @@ test('chart title is optional: empty becomes null, and the song title + artist s
   assert.equal(chartTitle(untitled, { title: 'Kiss of Life', artist: 'Sade' }), 'Kiss of Life · Sade')
   assert.equal(chartTitle(untitled, { title: 'Scale drills', artist: null }), 'Scale drills')
   assert.equal(chartTitle({ title: 'Intro tab' }, { title: 'Kiss of Life', artist: 'Sade' }), 'Intro tab')
+})
+
+test('text-file charts: keyed by the file URL, so the same file is found again', () => {
+  const local = 'file:///Users/me/Tabs/Sade%20-%20Kiss%20of%20Life.txt'
+  assert.equal(chartKeyForFile(local), `chart:${local}`)
+  assert.equal(chartKeyForFile(`${local}#top`), `chart:${local}`)
+  // Web files are normalized like links: tracking params and the fragment go.
+  assert.equal(chartKeyForFile('http://example.com/tabs/kiss.txt?utm_source=x#a'), 'chart:https://example.com/tabs/kiss.txt')
+  const text = 'Fmaj7   Em7\n  There must have been'
+  const c = fileChartSource({ id: 'f1', url: `${local}#top`, title: '', text, now: 2 })
+  assert.deepEqual(c, { id: 'f1', site: 'chart', url: local, canonicalKey: `chart:${local}`, label: null, title: null, text, addedAt: 2, lastOpenedAt: null })
+  assert.equal(isChart(c), true)
+})
+
+test('text-file charts: title and artist guessed from the file name', () => {
+  assert.equal(fileBaseName('file:///Users/me/Tabs/Sade%20-%20Kiss_of_Life.txt'), 'Sade - Kiss of Life')
+  assert.deepEqual(guessFromFileName('file:///Users/me/Tabs/Sade%20-%20Kiss_of_Life.txt'), { artistGuess: 'Sade', titleGuess: 'Kiss of Life' })
+  assert.deepEqual(guessFromFileName('https://example.com/kiss-of-life.txt?x=1'), { titleGuess: 'kiss-of-life', artistGuess: null })
+  assert.deepEqual(guessFromFileName('file:///notes/.txt'), { titleGuess: null, artistGuess: null })
+  assert.equal(fileBaseName('file:///a/bad%E0name.txt'), 'bad%E0name')
+})
+
+test('song picker: suggestions by title word-start, then artist, then contains; exact title match', () => {
+  const lib = [
+    { id: '1', title: 'Little Wing', artist: 'Jimi Hendrix' },
+    { id: '2', title: 'Kiss of Life', artist: 'Sade' },
+    { id: '3', title: 'Smooth Operator', artist: 'Sade' },
+    { id: '4', title: 'Lifelines', artist: null },
+    { id: '5', title: 'Wonderful Life', artist: 'Black' },
+  ]
+  const ids = (xs: { id: string }[]) => xs.map((x) => x.id)
+  assert.deepEqual(ids(suggestSongs(lib, 'life')), ['2', '4', '5'])
+  assert.deepEqual(ids(suggestSongs(lib, 'sade')), ['2', '3'])
+  assert.deepEqual(ids(suggestSongs(lib, 'ing')), ['1'])
+  assert.deepEqual(ids(suggestSongs(lib, 'KISS of')), ['2'])
+  assert.deepEqual(suggestSongs(lib, '  '), [])
+  assert.deepEqual(ids(suggestSongs(lib, 'l', 2)), ['1', '2'])
+  assert.equal(findSongByTitle(lib, 'kiss of life!')?.id, '2')
+  assert.equal(findSongByTitle(lib, 'Kiss of'), undefined)
+  assert.equal(findSongByTitle(lib, ''), undefined)
 })

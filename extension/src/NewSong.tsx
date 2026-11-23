@@ -7,16 +7,8 @@ import { libraryUrl } from './config'
 import { Footer, Header } from './layout'
 import { Field, TagInput } from './ui'
 
-const LAST_STATUS_KEY = 'lastStatus'
-const isStatus = (v: unknown): v is Status => STATUSES.some((s) => s.value === v)
-export async function lastUsedStatus(): Promise<Status> {
-  try {
-    const v = (await chrome.storage.local.get(LAST_STATUS_KEY))[LAST_STATUS_KEY]
-    return isStatus(v) ? v : 'wishlist'
-  } catch {
-    return 'wishlist'
-  }
-}
+/** A new song always starts as Wishlist (SPEC §6.4). */
+export const NEW_SONG_STATUS: Status = 'wishlist'
 
 const KEY_OPTIONS = KEY_ROOTS.flatMap((r) => (['major', 'minor'] as const).map((m) => ({ value: `${r}|${m}`, label: `${r} ${m}` })))
 
@@ -39,7 +31,6 @@ interface Props {
   pageTitle: string
   /** A song with the same title and artist, if there is one. */
   match: SongDoc | null
-  initialStatus: Status
   email: string | null
   onSignOut: () => void
   /** YouTube: where the video is now, in seconds (offered as the link's start time). */
@@ -50,7 +41,7 @@ interface Props {
   hint?: ReactNode
 }
 
-export function NewSong({ uid, parsed, pageTitle, match, initialStatus, playbackSec, email, onSignOut, onSaved, hint }: Props) {
+export function NewSong({ uid, parsed, pageTitle, match, playbackSec, email, onSignOut, onSaved, hint }: Props) {
   // Fixed per form, so a retry after a failed save overwrites the same song and link instead of adding another.
   const songId = useRef(crypto.randomUUID())
   const sourceId = useRef(crypto.randomUUID())
@@ -60,7 +51,7 @@ export function NewSong({ uid, parsed, pageTitle, match, initialStatus, playback
   const [title, setTitle] = useState(parsed.titleGuess ?? '')
   const [artist, setArtist] = useState(parsed.artistGuess ?? '')
   const [key, setKey] = useState('')
-  const [status, setStatus] = useState<Status>(initialStatus)
+  const [status, setStatus] = useState<Status>(NEW_SONG_STATUS)
   const [tags, setTags] = useState<string[]>(parsed.suggestedTags)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -102,7 +93,6 @@ export function NewSong({ uid, parsed, pageTitle, match, initialStatus, playback
         { title: title.trim(), artist: artist.trim() || null, keyRoot, keyMode, tags: mergeTags([], tags), status },
         source(),
       )
-      void chrome.storage.local.set({ [LAST_STATUS_KEY]: status }).catch(() => {})
       return song
     })
 

@@ -89,8 +89,8 @@ users/{uid}/songs/{songId}
 Source {                          // a "resource": a link, or one of the user's own charts
   id: string                      // client-generated
   site: 'youtube' | 'ultimateguitar' | 'songsterr' | 'other' | 'chart'
-  url: string                     // as the user gave it, minus tracking params; '' for a chart
-  canonicalKey: string            // 'yt:<videoId>', 'ug:<tabId>', 'ss:<songId>', 'url:<normalized url>', or 'chart:<id>'
+  url: string                     // as the user gave it, minus tracking params; for a chart, '' or the text file it was saved from (extension SPEC §5.1)
+  canonicalKey: string            // 'yt:<videoId>', 'ug:<tabId>', 'ss:<songId>', 'url:<normalized url>', 'chart:<id>', or 'chart:<file url>' for a chart saved from a text file
   label: string | null            // user's own label, e.g. "Simplified chords"
   title?: string | null           // the link's own title (tab or bookmark title), separate from the song's title; prefilled on save, editable; absent on older links. Optional for a chart too (null when left empty).
   text?: string                   // charts only: the chart itself, plain text, at most 50,000 characters
@@ -240,7 +240,7 @@ Imported sources get `lastOpenedAt: null`. Bookmark add dates are not opens.
 
 ### 4.8 Charts (the user's own chord or tab text)
 A chart is a resource that holds text instead of pointing to a page: tab or chords the user wrote, e.g. their own tab for "Kiss of Life".
-- **Stored** as a Source on the song with `site: 'chart'`, `url: ''`, `canonicalKey: 'chart:<id>'`, an optional `title` and the `text` (§3). Plain text only; spacing kept exactly.
+- **Stored** as a Source on the song with `site: 'chart'`, `url: ''` and `canonicalKey: 'chart:<id>'` (or, when saved from a text file by the extension, the file's URL and `'chart:<file url>'`), an optional `title` and the `text` (§3). Plain text only; spacing kept exactly.
 - **Name:** the chart's title, or if it has none, the song's title and artist ("Kiss of Life · Sade"; just the title when there's no artist). Used on its card, its menu and the viewer header.
 - **Opening:** a chart card opens the viewer **in a new tab**, just like a link (`<a href="#/song/<songId>/chart/<sourceId>" target="_blank" rel="noopener">`), and logs an open in the same click handler (§6). Reloading or returning to the viewer doesn't log another.
   - **Exception, installed app:** when running as an installed home-screen app (`display-mode: standalone`), open the viewer in the same window instead. On iPhone an installed app keeps its sign-in separate from Safari, so a new tab would land in Safari signed out.
@@ -259,7 +259,7 @@ A chart is a resource that holds text instead of pointing to a page: tab or chor
   - If the title + artist match an existing song (same normalized match as §4.4), show the "Already in your library" panel with **Add to this song** (default) and **New song**.
   - "Save" creates the song with the chart as its first resource (or adds the chart to the matched song) and returns to the previous view (the Library), like Cancel.
 - **Search** matches chart titles like link titles; the chart text isn't searched.
-- **Extension:** unaffected for lookups (a chart never matches a page). In the popup's list of the song's other resources, a chart shows as "My chart · *title*" (just "My chart" when it has no title) and opens its viewer in the app in a new tab, logging an open.
+- **Extension:** a plain-text page (a local or web `.txt` file) can be saved as a chart, and saved again later to update its text (extension SPEC §5.1, §6.6, §6.7). Otherwise charts never match a page. In the popup's list of the song's other resources, a chart shows as "My chart · *title*" (just "My chart" when it has no title) and opens its viewer in the app in a new tab, logging an open.
 
 ---
 
@@ -311,7 +311,7 @@ When a source card is tapped:
 ## 7. Third-party terms (constraints, not suggestions)
 
 - **Store URLs, IDs, and the user's own titles, labels and notes. Never store or cache page content** (tab text, chords, lyrics, video data).
-  - The user's own charts (§4.8) are their writing, typed or pasted by them, so storing them is fine. The app never fills a chart from a site: no import, fetch or "copy from this link".
+  - The user's own charts (§4.8) are their writing, typed or pasted by them, so storing them is fine. The app never fills a chart from a site on its own: no import, fetch or "copy from this link". The one way text comes in from a page is the extension saving a plain-text file the user has open and chooses to save (extension SPEC §5.1).
 - **Never iframe or frame Ultimate Guitar or Songsterr pages.** UG's terms prohibit framing. No embedded YouTube player in v1.
 - **No scraping:** no fetching of UG or Songsterr pages, from the app or a server.
 - **YouTube thumbnails:**
