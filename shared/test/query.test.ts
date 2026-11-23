@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { filterSongs, sortSongs, matchesQuery, collectTags, suggestTags, NO_FILTERS, type QuerySong } from '../src/index.ts'
+import { filterSongs, sortSongs, matchesQuery, collectTags, suggestTags, activeFilterCount, NO_FILTERS, type QuerySong } from '../src/index.ts'
 
 const t = (ms: number | null) => (ms === null ? null : { toMillis: () => ms })
 const DAY = 86_400_000
@@ -67,12 +67,13 @@ test('tags: AND logic, case-insensitive', () => {
 })
 
 test('more filters: site, key', () => {
-  assert.deepEqual(titles(filterSongs(library, { ...NO_FILTERS, site: 'ultimateguitar' })), ['Little Wing', 'Pride and Joy', 'Wonderful Tonight'])
+  assert.deepEqual(titles(filterSongs(library, { ...NO_FILTERS, sites: ['ultimateguitar'] })), ['Little Wing', 'Pride and Joy', 'Wonderful Tonight'])
+  assert.deepEqual(titles(filterSongs(library, { ...NO_FILTERS, sites: ['songsterr', 'youtube'] })), ['Landslide', 'Little Wing', 'Minor pentatonic: all 5 boxes', 'Pride and Joy'])
   assert.deepEqual(titles(filterSongs(library, { ...NO_FILTERS, keyRoot: 'E' })), ['Little Wing', 'Pride and Joy'])
 })
 
 test('filters combine (AND across kinds)', () => {
-  const f = { ...NO_FILTERS, statuses: ['learning' as const], site: 'ultimateguitar' as const, query: 'joy', tags: ['shuffle'], keyRoot: 'E' }
+  const f = { ...NO_FILTERS, statuses: ['learning' as const], sites: ['ultimateguitar' as const], query: 'joy', tags: ['shuffle'], keyRoot: 'E' }
   assert.deepEqual(titles(filterSongs(library, f)), ['Pride and Joy'])
   assert.deepEqual(titles(filterSongs(library, { ...f, keyRoot: 'C' })), [])
   assert.deepEqual(titles(filterSongs(library, { ...f, statuses: ['canplay' as const] })), [])
@@ -124,4 +125,10 @@ test('suggestTags: nothing typed offers every tag the item does not have, in ord
   const all = ['blues', 'Texas blues', 'scales']
   assert.deepEqual(suggestTags(all, ['SCALES'], '  '), ['blues', 'Texas blues'])
   assert.deepEqual(suggestTags(all, [], '', 1), ['blues'])
+})
+
+test('activeFilterCount: each status, tag and site, plus the key; not the search text', () => {
+  assert.equal(activeFilterCount(NO_FILTERS), 0)
+  assert.equal(activeFilterCount({ ...NO_FILTERS, query: 'joy' }), 0)
+  assert.equal(activeFilterCount({ ...NO_FILTERS, statuses: ['learning', 'polishing'], tags: ['blues'], sites: ['youtube', 'songsterr'], keyRoot: 'E' }), 6)
 })

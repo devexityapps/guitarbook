@@ -143,14 +143,14 @@ Phone-first (390px wide target), works at desktop width. Dark theme as in the mo
 Single "Sign in with Google" button. After sign-in, go to Library.
 
 ### 4.2 Library (home)
-- **Header:** "Library" title; on the right a search icon, then a hamburger menu. The menu holds Sign out (and Import bookmarks, Settings once those are built).
+- **Header:** "Library" title; on the right a search icon, a filters icon, then a hamburger menu. The menu holds Sign out (and Import bookmarks, Settings once those are built). Search and filters icons are hidden while the library is empty.
 - **Search:** the box is hidden by default; the search icon opens it with the cursor in it. Tapping the icon again (or Escape in an empty box) closes it and clears the search. Matches title, artist, tags, source labels and link titles (case-insensitive, accent-insensitive).
-- **Filters:**
-  - One row of filter buttons: Status, Tags, Site, Key. Each opens its own picker sheet (with Clear and Done) and is outlined when active.
-  - "Status" (Learning, Polishing, Ready, Wishlist): multi-select, OR logic (a song has one status). None picked = all statuses. Button shows a count ("Status · 2").
-  - "Tags": multi-select, AND logic. Button shows a count.
-  - "Site" (Any, YouTube, UG, Songsterr): single choice; songs with at least one link on that site. Button shows the pick ("Site · UG").
-  - "Key" (Any, plus only the keys used in the library): single choice. Button shows the pick ("Key · E").
+- **Filters:** the filters icon opens one sheet with every filter; there are no filter buttons above the list. Changes apply as you tap. The sheet ends with "Clear all" and "Show N items" (closes it).
+  - **Status** (Learning, Polishing, Ready, Wishlist): multi-select, OR logic (a song has one status). None picked = all statuses.
+  - **Tags:** multi-select, AND logic.
+  - **Site** (YouTube, UG, Songsterr): multi-select, OR logic: songs with a link on any of the picked sites. None picked = every site.
+  - **Key** (Any, plus only the keys used in the library): single choice.
+  - **Badge:** when any are on, the filters icon turns amber and shows the number of choices made (each status, tag and site, plus the key). The search text isn't counted.
 - **Count line:** "N items" reflecting active filters.
 - **Sort options:**
   - Longest untouched (default): never-opened first, then oldest `lastOpenedAt`.

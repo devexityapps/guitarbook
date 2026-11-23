@@ -7,7 +7,7 @@ import {
 import { auth } from '../firebase'
 import { useSettings, useSongs, type SongDoc } from '../data'
 import { keyText, sinceOpened, toDate } from '../format'
-import { Chips, IconMenu, IconPlus, IconSearch, Sheet, SITE_ICONS, StatusPill, Thumb } from '../ui'
+import { Chips, IconFilters, IconMenu, IconPlus, IconSearch, Sheet, SITE_ICONS, StatusPill, Thumb } from '../ui'
 
 const SORT_KEY = 'guitarbook.sort'
 
@@ -76,7 +76,7 @@ export function Library() {
   const { staleDays, showThumbnails } = useSettings()
   const [filters, setFilters] = useState<Filters>(NO_FILTERS)
   const [sort, setSort] = useState<SortKey>(loadSort)
-  const [sheet, setSheet] = useState<'status' | 'tags' | 'site' | 'key' | null>(null)
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -101,12 +101,12 @@ export function Library() {
   const roots = useMemo(() => KEY_ROOTS.filter((k) => all.some((s) => s.keyRoot === k)), [all])
   const now = new Date()
 
-  const statusCount = activeFilterCount(filters, 'status')
-  const tagCount = activeFilterCount(filters, 'tags')
-  const siteLabel = SITE_SHORT.find((s) => s.site === filters.site)?.label
-  const filtered = filters.query.trim() !== '' || statusCount > 0 || tagCount > 0 || filters.site !== null || filters.keyRoot !== null
+  // Badge on the filters icon: every choice made in the filters sheet (the search box isn't counted).
+  const filterCount = activeFilterCount(filters)
+  const filtered = filters.query.trim() !== '' || filterCount > 0
+  const clearSheetFilters = () => set({ statuses: [], tags: [], sites: [], keyRoot: null })
 
-  // Order in the status sheet (SPEC §4.2): the in-progress statuses, then Wishlist.
+  // Order in the filters sheet (SPEC §4.2): the in-progress statuses, then Wishlist.
   const statusOrder = ['learning', 'polishing', 'canplay', 'wishlist'] as const
   const statusOptions = statusOrder.map((v) => STATUSES.find((s) => s.value === v)!)
 
@@ -118,6 +118,18 @@ export function Library() {
           {all.length > 0 && (
             <button type="button" className={`icon-btn${searchOpen ? ' on' : ''}`} aria-label={searchOpen ? 'Close search' : 'Search'} aria-expanded={searchOpen} aria-controls="library-search" onClick={toggleSearch}>
               <IconSearch />
+            </button>
+          )}
+          {all.length > 0 && (
+            <button
+              type="button"
+              className={`icon-btn badge-host${filterCount ? ' on' : ''}`}
+              aria-label={filterCount ? `Filters, ${filterCount} on` : 'Filters'}
+              aria-haspopup="dialog"
+              onClick={() => setFiltersOpen(true)}
+            >
+              <IconFilters />
+              {filterCount > 0 && <span className="badge" aria-hidden="true">{filterCount}</span>}
             </button>
           )}
           <button type="button" className="icon-btn" aria-label="Menu" aria-haspopup="menu" aria-expanded={menuOpen} aria-controls="library-menu" onClick={() => setMenuOpen((o) => !o)}>
@@ -160,13 +172,6 @@ export function Library() {
             </div>
           )}
 
-          <div className="chip-scroll" role="group" aria-label="Filters">
-            <button type="button" className={`chip${statusCount ? ' on-soft' : ''}`} onClick={() => setSheet('status')}>Status{statusCount ? ` · ${statusCount}` : ''}</button>
-            <button type="button" className={`chip${tagCount ? ' on-soft' : ''}`} onClick={() => setSheet('tags')}>Tags{tagCount ? ` · ${tagCount}` : ''}</button>
-            <button type="button" className={`chip${filters.site ? ' on-soft' : ''}`} onClick={() => setSheet('site')}>Site{siteLabel ? ` · ${siteLabel}` : ''}</button>
-            <button type="button" className={`chip${filters.keyRoot ? ' on-soft' : ''}`} onClick={() => setSheet('key')}>Key{filters.keyRoot ? ` · ${filters.keyRoot}` : ''}</button>
-          </div>
-
           <div className="count-line">
             <span className="muted" aria-live="polite">{shown.length} {shown.length === 1 ? 'item' : 'items'}</span>
             <label className="sort">
@@ -199,33 +204,27 @@ export function Library() {
       )}
       <button type="button" className={`fab${addOpen ? ' open' : ''}`} aria-label="Add" aria-haspopup="menu" aria-expanded={addOpen} aria-controls="add-menu" onClick={() => setAddOpen((o) => !o)}><IconPlus /></button>
 
-      {sheet === 'status' && (
-        <Sheet title="Filter by status" onClose={() => setSheet(null)}>
-          <p className="muted small">Songs with any of the statuses you pick.</p>
-          <div className="chips">
-            {statusOptions.map((o) => {
-              const on = filters.statuses.includes(o.value)
-              return (
-                <button key={o.value} type="button" aria-pressed={on} className={`chip tag${on ? ' on' : ''}`} onClick={() => set({ statuses: on ? filters.statuses.filter((x) => x !== o.value) : [...filters.statuses, o.value] })}>
-                  {o.label}
-                </button>
-              )
-            })}
-          </div>
-          <div className="row">
-            <button className="btn" disabled={!statusCount} onClick={() => set({ statuses: [] })}>Clear</button>
-            <button className="btn primary" onClick={() => setSheet(null)}>Done</button>
-          </div>
-        </Sheet>
-      )}
+      {filtersOpen && (
+        <Sheet title="Filters" onClose={() => setFiltersOpen(false)}>
+          <section className="filter-group">
+            <h3 className="field-label">Status <span className="hint">· any of these</span></h3>
+            <div className="chips">
+              {statusOptions.map((o) => {
+                const on = filters.statuses.includes(o.value)
+                return (
+                  <button key={o.value} type="button" aria-pressed={on} className={`chip tag${on ? ' on' : ''}`} onClick={() => set({ statuses: on ? filters.statuses.filter((x) => x !== o.value) : [...filters.statuses, o.value] })}>
+                    {o.label}
+                  </button>
+                )
+              })}
+            </div>
+          </section>
 
-      {sheet === 'tags' && (
-        <Sheet title="Filter by tags" onClose={() => setSheet(null)}>
-          {allTags.length === 0 ? (
-            <p className="muted">No tags yet. Add tags when you create or edit a song.</p>
-          ) : (
-            <>
-              <p className="muted small">Songs must have all the tags you pick.</p>
+          <section className="filter-group">
+            <h3 className="field-label">Tags <span className="hint">· all of these</span></h3>
+            {allTags.length === 0 ? (
+              <p className="muted small">No tags yet. Add tags on a song's page.</p>
+            ) : (
               <div className="chips">
                 {allTags.map((t) => {
                   const on = filters.tags.some((x) => x.toLowerCase() === t.toLowerCase())
@@ -236,36 +235,35 @@ export function Library() {
                   )
                 })}
               </div>
-            </>
-          )}
-          <div className="row">
-            <button className="btn" disabled={!tagCount} onClick={() => set({ tags: [] })}>Clear</button>
-            <button className="btn primary" onClick={() => setSheet(null)}>Done</button>
-          </div>
-        </Sheet>
-      )}
+            )}
+          </section>
 
-      {sheet === 'site' && (
-        <Sheet title="Filter by site" onClose={() => setSheet(null)}>
-          <p className="muted small">Songs with at least one link on this site.</p>
-          <Chips<'any' | Site> label="Site" value={filters.site ?? 'any'} onChange={(v) => set({ site: v === 'any' ? null : v })} options={[{ value: 'any', label: 'Any' }, ...SITE_SHORT.map((s) => ({ value: s.site, label: s.label }))]} />
-          <div className="row">
-            <button className="btn" disabled={!filters.site} onClick={() => set({ site: null })}>Clear</button>
-            <button className="btn primary" onClick={() => setSheet(null)}>Done</button>
-          </div>
-        </Sheet>
-      )}
+          <section className="filter-group">
+            <h3 className="field-label">Site <span className="hint">· a link on any of these</span></h3>
+            <div className="chips" role="group" aria-label="Site">
+              {SITE_SHORT.map((s) => {
+                const on = filters.sites.includes(s.site)
+                return (
+                  <button key={s.site} type="button" aria-pressed={on} className={`chip tag${on ? ' on' : ''}`} onClick={() => set({ sites: on ? filters.sites.filter((x) => x !== s.site) : [...filters.sites, s.site] })}>
+                    {s.label}
+                  </button>
+                )
+              })}
+            </div>
+          </section>
 
-      {sheet === 'key' && (
-        <Sheet title="Filter by key" onClose={() => setSheet(null)}>
-          {roots.length === 0 ? (
-            <p className="muted">No keys yet. Set a song's key on its page.</p>
-          ) : (
-            <Chips<string> label="Key" value={filters.keyRoot ?? 'any'} onChange={(v) => set({ keyRoot: v === 'any' ? null : v })} options={[{ value: 'any', label: 'Any' }, ...roots.map((k) => ({ value: k, label: k }))]} />
-          )}
-          <div className="row">
-            <button className="btn" disabled={!filters.keyRoot} onClick={() => set({ keyRoot: null })}>Clear</button>
-            <button className="btn primary" onClick={() => setSheet(null)}>Done</button>
+          <section className="filter-group">
+            <h3 className="field-label">Key</h3>
+            {roots.length === 0 ? (
+              <p className="muted small">No keys yet. Set a song's key on its page.</p>
+            ) : (
+              <Chips<string> label="Key" value={filters.keyRoot ?? 'any'} onChange={(v) => set({ keyRoot: v === 'any' ? null : v })} options={[{ value: 'any', label: 'Any' }, ...roots.map((k) => ({ value: k, label: k }))]} />
+            )}
+          </section>
+
+          <div className="row sheet-actions">
+            <button className="btn" disabled={!filterCount} onClick={clearSheetFilters}>Clear all</button>
+            <button className="btn primary" onClick={() => setFiltersOpen(false)}>Show {shown.length} {shown.length === 1 ? 'item' : 'items'}</button>
           </div>
         </Sheet>
       )}

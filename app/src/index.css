@@ -141,6 +141,14 @@ textarea.input { resize: vertical; min-height: 88px; }
 .sheet-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: flex-end; justify-content: center; z-index: 10; }
 .sheet { width: 100%; max-width: 560px; background: var(--surface); border-radius: 22px 22px 0 0; padding: 20px 16px calc(20px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 14px; border: 1px solid var(--border); }
 .sheet-title { font-size: 18px; overflow-wrap: anywhere; }
+.sheet { max-height: 88vh; overflow-y: auto; }
+.sheet-actions { position: sticky; bottom: calc(-20px - env(safe-area-inset-bottom)); margin-top: 4px; padding: 12px 0 calc(20px + env(safe-area-inset-bottom)); margin-bottom: calc(-20px - env(safe-area-inset-bottom)); background: var(--surface); }
+.filter-group { display: flex; flex-direction: column; gap: 10px; }
+.filter-group h3 { margin: 0; font-family: inherit; font-weight: 600; color: var(--text); }
+.filter-group .hint { font-weight: 400; }
+/* number badge on an icon button (filters on) */
+.badge-host { position: relative; }
+.badge { position: absolute; top: 2px; right: 0; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--amber); color: #121417; font-size: 12px; font-weight: 700; line-height: 18px; text-align: center; }
 
 /* ---- library: search, filters, rows ---------------------------------------- */
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -149,10 +157,6 @@ textarea.input { resize: vertical; min-height: 88px; }
 .search input { flex: 1; min-width: 0; background: none; border: 0; outline: none; color: var(--text); min-height: 48px; }
 .search input::placeholder { color: var(--text-2); }
 .search input::-webkit-search-cancel-button { filter: invert(.7); }
-.chip-scroll { display: flex; gap: 10px; overflow-x: auto; padding: 14px 16px 4px; scrollbar-width: none; }
-.chip-scroll::-webkit-scrollbar { display: none; }
-.chip-scroll .chip { flex: none; white-space: nowrap; }
-.chip.on-soft { border-color: var(--amber); color: var(--amber-text); }
 .count-line { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; min-height: 52px; }
 .sort select { appearance: none; background: none; border: 0; color: var(--text); padding: 10px 26px 10px 8px; min-height: 44px; cursor: pointer;
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23eceef1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 4px center; }

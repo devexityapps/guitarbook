@@ -24,11 +24,12 @@ export interface Filters {
   statuses: Status[]
   /** Every listed tag must be on the song (AND), compared case-insensitively. */
   tags: string[]
-  site: Site | null
+  /** The song must have a link on at least one of these sites (OR). Empty = every site. */
+  sites: Site[]
   keyRoot: string | null
 }
 
-export const NO_FILTERS: Filters = { query: '', statuses: [], tags: [], site: null, keyRoot: null }
+export const NO_FILTERS: Filters = { query: '', statuses: [], tags: [], sites: [], keyRoot: null }
 
 export type SortKey = 'untouched' | 'opened' | 'added' | 'az'
 
@@ -54,7 +55,7 @@ export function filterSongs<S extends QuerySong>(songs: S[], f: Filters): S[] {
   return songs.filter((s) => {
     if (f.statuses.length && !f.statuses.includes(s.status)) return false
     if (f.keyRoot && s.keyRoot !== f.keyRoot) return false
-    if (f.site && !s.sources.some((src) => src.site === f.site)) return false
+    if (f.sites.length && !s.sources.some((src) => f.sites.includes(src.site))) return false
     if (wantTags.length) {
       const have = new Set(s.tags.map((t) => t.toLowerCase()))
       if (!wantTags.every((t) => have.has(t))) return false
@@ -106,9 +107,9 @@ export function collectTags(songs: { tags: string[] }[]): string[] {
   return [...counts.values()].sort((a, b) => b.n - a.n || collator.compare(a.tag, b.tag)).map((x) => x.tag)
 }
 
-/** How many choices are on in a multi-select filter (shown on its Library button, e.g. "Tags · 2"). */
-export function activeFilterCount(f: Filters, group: 'tags' | 'status'): number {
-  return group === 'tags' ? f.tags.length : f.statuses.length
+/** How many choices are on in the filters sheet: each status, tag and site, plus the key. The search text isn't counted. */
+export function activeFilterCount(f: Filters): number {
+  return f.statuses.length + f.tags.length + f.sites.length + (f.keyRoot ? 1 : 0)
 }
 
 /**
