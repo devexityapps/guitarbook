@@ -12,7 +12,7 @@ const svg = { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'none', stroke:
 export const IconBack = () => <svg {...svg}><path d="M15 5l-7 7 7 7" /></svg>
 export const IconPlus = () => <svg {...svg}><path d="M12 5v14M5 12h14" /></svg>
 export const IconFilters = () => <svg {...svg}><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" /><circle cx="16" cy="6" r="2" /><circle cx="10" cy="12" r="2" /><circle cx="18" cy="18" r="2" /></svg>
-export const IconMenu = () => <svg {...svg}><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+export const IconGear = () => <svg {...svg}><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" /></svg>
 export const IconPage = () => <svg {...svg} width={20} height={20}><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z" /><path d="M14 3v5h5M9 13h6M9 17h6" /></svg>
 export const IconX =() => <svg {...svg} width={22} height={22} strokeWidth={2.5}><path d="M6 6l12 12M18 6L6 18" /></svg>
 export const IconCircleX = () => <svg viewBox="0 0 24 24" width={20} height={20} aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor" /><path d="M8.5 8.5l7 7M15.5 8.5l-7 7" stroke="var(--tag-chip-bg)" strokeWidth={2} strokeLinecap="round" /></svg>

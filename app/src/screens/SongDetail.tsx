@@ -4,7 +4,7 @@ import type { Timestamp } from 'firebase/firestore'
 import { deleteSong, patchSong, recordOpen, setSources, useSettings, useSongs, useUid, type SongDoc, type SourceDoc } from '../data'
 import { lastOpenedText, openedText, toDate } from '../format'
 import { Field, Header, IconBack, IconDots, IconOut, IconPage, IconPlus, InlineText, PillSelect, SITE_ICONS, Sheet, TagInput, Thumb } from '../ui'
-import { goBack, navigate } from '../router'
+import { navigate } from '../router'
 import { chartOpensInNewTab, chartPath } from './Chart'
 
 const KEY_OPTIONS = [{ value: '', label: 'No key' }, ...KEY_ROOTS.map((k) => ({ value: k as string, label: k }))]
@@ -60,7 +60,7 @@ export function SongDetail({ id }: { id: string }) {
 
   return (
     <main className="screen">
-      <Header left={<button className="icon-btn" aria-label="Back" onClick={() => goBack('/')}><IconBack /></button>} />
+      <Header left={<a className="icon-btn" href="#/" aria-label="Back to library"><IconBack /></a>} />
       <div className="pad">
         <h1 className="song-title">
           <InlineText label="Title" value={song.title} required onSave={(title) => save({ title })} />

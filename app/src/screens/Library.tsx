@@ -7,7 +7,7 @@ import {
 import { auth } from '../firebase'
 import { useSettings, useSongs, type SongDoc } from '../data'
 import { keyText, sinceOpened, toDate } from '../format'
-import { Chips, IconFilters, IconMenu, IconPlus, IconSearch, Sheet, SITE_ICONS, StatusPill, Thumb } from '../ui'
+import { Chips, IconFilters, IconGear, IconPlus, IconSearch, Sheet, SITE_ICONS, StatusPill, Thumb } from '../ui'
 
 const SORT_KEY = 'guitarbook.sort'
 
@@ -135,14 +135,14 @@ export function Library() {
               {filterCount > 0 && <span className="badge" aria-hidden="true">{filterCount}</span>}
             </button>
           )}
-          <button type="button" className="icon-btn" aria-label="Menu" aria-haspopup="menu" aria-expanded={menuOpen} aria-controls="library-menu" onClick={() => setMenuOpen((o) => !o)}>
-            <IconMenu />
+          <button type="button" className="icon-btn" aria-label="Settings" aria-haspopup="menu" aria-expanded={menuOpen} aria-controls="library-menu" onClick={() => setMenuOpen((o) => !o)}>
+            <IconGear />
           </button>
         </div>
         {menuOpen && (
           <>
             <div className="menu-backdrop" onClick={() => setMenuOpen(false)} />
-            <div className="top-menu" id="library-menu" role="menu" aria-label="Menu">
+            <div className="top-menu" id="library-menu" role="menu" aria-label="Settings">
               <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); void signOut(auth) }}>Sign out</button>
             </div>
           </>

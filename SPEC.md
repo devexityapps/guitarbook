@@ -144,7 +144,7 @@ Phone-first (390px wide target), works at desktop width. Dark theme as in the mo
 Single "Sign in with Google" button. After sign-in, go to Library.
 
 ### 4.2 Library (home)
-- **Header:** "Library" title; on the right a search icon, a filters icon, then a hamburger menu. The menu holds Sign out (and Import bookmarks, Settings once those are built). Search and filters icons are hidden while the library is empty.
+- **Header:** "Library" title; on the right a search icon, a filters icon, then a gear icon. Until the Settings screen (§4.7) is built, the gear opens a small menu with Sign out; once it exists, the gear opens Settings, which holds Sign out, Export and Import bookmarks. Search and filters icons are hidden while the library is empty.
 - **Search:** the box is hidden by default; the search icon opens it with the cursor in it. Tapping the icon again (or Escape in an empty box) closes it and clears the search. Matches title, artist, tags, source labels and link titles (case-insensitive, accent-insensitive).
 - **Filters:** the filters icon opens one sheet with every filter; there are no filter buttons above the list. Changes apply as you tap. The sheet ends with "Clear all" and "Show N items" (closes it).
   - **Status** (Learning, Polishing, Ready, Wishlist): multi-select, OR logic (a song has one status). None picked = all statuses.
@@ -170,7 +170,7 @@ Single "Sign in with Google" button. After sign-in, go to Library.
 - **Empty state:** short text plus two buttons, "Add link" and "Import bookmarks".
 
 ### 4.3 Song detail
-- **Back link.** No Edit button: every field is edited in place (§4.5).
+- **Back link** always goes to the Library (not to the previous screen, e.g. a chart). No Edit button: every field is edited in place (§4.5).
 - **Header:** title, artist, "Last opened X · opened N times", then the status pill.
 - **Section order:** Tags, Key, Notes, Resources, then Delete song.
 - **Tags, Key, Notes and Resources:** with a value, a section with its heading (Key holds the key pill and the mode pill). When empty, no heading: just a dashed "+ tag" / "+ key" / "+ note" / "+ resource" button, and empty ones in a row sit side by side. "+ resource" opens the same Link / Chart menu as "+ Add".
