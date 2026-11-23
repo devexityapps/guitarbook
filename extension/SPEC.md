@@ -96,7 +96,7 @@ users/{uid}/songs/{songId}
 When the popup opens:
 1. **Get the tab's `url` and `title`** via `activeTab`.
 2. **Skip pages that can't be saved:** if the URL isn't http(s) (`chrome://`, the Web Store, `file:`, new tab page), show "Guitarbook can't save this page." with only the "Open library" button.
-3. **Parse:** run the shared `parseLink(url, titleHint)` from `shared/`, with the tab title as the hint. It returns site, canonical key, role guess, title and artist guesses, and suggested tags.
+3. **Parse:** run the shared `parseLink(url, titleHint)` from `shared/`, with the tab title as the hint. It returns site, canonical key, title and artist guesses, and suggested tags.
 4. **Look up:**
    - query `sourceKeys array-contains canonicalKey` → saved (§6.2)
    - else, if title and artist were guessed, query `matchKey` → "matches an existing song" (§6.3)
@@ -109,7 +109,6 @@ The parser already handles URLs; these are extra rules for tab titles.
 - **YouTube:**
   - **Title cleanup:** strip a leading notification count like `(3) ` and a trailing ` - YouTube`.
   - **Artist/song split:** "Artist - Song" splits on the first " - ".
-  - **Role guess:** lesson words → Lesson; "backing track" → Backing; "official video", "live" or "official audio" → Performance.
   - **Start time:**
     - If the URL has `t=`, use it.
     - Otherwise, on a `watch` page, the popup may run one `chrome.scripting.executeScript` on the active tab that returns `document.querySelector('video')?.currentTime` and nothing else.
@@ -118,7 +117,9 @@ The parser already handles URLs; these are extra rules for tab titles.
   - **Non-video YouTube pages** (home, search, channel): save as site 'other' with the cleaned title. Playlist pages: per the app spec (`ytpl:` key).
 - **Ultimate Guitar:** prefer the tab title if it clearly contains song and artist. Otherwise use the URL slugs. Check the title pattern against real pages before relying on it.
 - **Songsterr:** the tab title usually separates song and artist better than the URL slug. Find the pattern from real pages; don't assume one. If unsure, prefill the whole title and leave artist empty.
-- **Any other site:** title = cleaned tab title; artist empty; type Lesson; role Other.
+- **Any other site:** title = cleaned tab title; artist empty; type Lesson.
+
+**Saving a page stores its tab title as the link's own `title`**, separate from the song's title (app spec §3). It is the title the user already sees, prefilled and editable in the app.
 
 **Never read page content beyond what's listed here.** No scraping of tab text, chords, lyrics, comments or video descriptions. URL, tab title and (YouTube only) playback position are all the extension reads.
 
@@ -140,20 +141,20 @@ The parser already handles URLs; these are extra rules for tab titles.
 ### 6.2 Page already saved
 - **Banner:** "Saved in *Song title*", plus "Last opened X · opened N times" for this link.
 - **Editable song fields:** title, artist, key, status, tags.
-- **Editable fields for this link:** role.
+- **Editable fields for this link:** link title.
 - **Notes and link labels are not in the popup** (any state). They're edited in the app; the popup stays for quick saves and fixes. Saving from the popup leaves `notes` empty for a new song and `label` null for a new link, and never overwrites existing values.
 - **Saving:** autosaves on change (debounced ~600 ms), with a small "Saved" indicator. Edits made just before the popup closes must still be written: flush any pending save immediately on `pagehide` / `visibilitychange`.
-- **Other links on this song:** compact list (site · role · label · last opened). Clicking one opens it in a new tab and logs an open, exactly as in the app (event doc + `lastOpenedAt` + `openCount`).
+- **Other links on this song:** compact list (site · label or link title · last opened). Clicking one opens it in a new tab and logs an open, exactly as in the app (event doc + `lastOpenedAt` + `openCount`).
 - **"Mark opened now"** button: logs an open for this link. Opens aren't recorded automatically when you merely visit a saved page.
 - **Remove this link** (confirm). If it's the song's last link, offer instead: "Delete the song too?" (confirm).
 
 ### 6.3 Not saved, but matches an existing song
 - **Panel:** "Already in your library: *Song* — *Artist* (N links)", with **Add to this song** (default) / **New song**.
-- **Add to this song:** asks only for this link's role, then saves and switches to 6.2.
+- **Add to this song:** saves the link at once and switches to 6.2.
 - **New song:** goes to the 6.4 form.
 
 ### 6.4 Not saved, new
-- **Form prefilled per §5:** type, title, artist, key (empty unless the parser found one), status (default: last used, else Wishlist), tags (parser suggestions), plus this link's role. On YouTube, the start-time option.
+- **Form prefilled per §5:** type, title, artist, key (empty unless the parser found one), status (default: last used, else Wishlist), tags (parser suggestions). On YouTube, the start-time option.
 - **Save** creates the song, then switches to 6.2.
 - Nothing is written until Save is clicked.
 

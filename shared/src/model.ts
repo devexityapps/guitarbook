@@ -1,4 +1,4 @@
-import type { Role, Site } from './types.ts'
+import type { Site } from './types.ts'
 
 // Data model (SPEC §3). `T` is the timestamp type, so this folder needs no Firebase import:
 // the app uses Song<Timestamp>.
@@ -12,8 +12,9 @@ export interface Source<T> {
   site: Site
   url: string
   canonicalKey: string
-  role: Role
   label: string | null
+  /** The page's own title (tab or bookmark title), prefilled when the link is saved and editable after. Absent on older links. */
+  title?: string | null
   ytVideoId?: string
   ytStartSec?: number
   ytPlaylistId?: string
@@ -53,14 +54,6 @@ export const STATUSES: { value: Status; label: string }[] = [
   { value: 'shelved', label: 'Shelved' },
 ]
 
-export const ROLES: { value: Role; label: string }[] = [
-  { value: 'lesson', label: 'Lesson' },
-  { value: 'tab', label: 'Tab' },
-  { value: 'chords', label: 'Chords' },
-  { value: 'backing', label: 'Backing track' },
-  { value: 'performance', label: 'Performance' },
-  { value: 'other', label: 'Other' },
-]
 
 export const SITE_NAMES: Record<Site, string> = {
   youtube: 'YouTube',

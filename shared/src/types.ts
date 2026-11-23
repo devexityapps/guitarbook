@@ -2,7 +2,7 @@
 
 export type Site = 'youtube' | 'ultimateguitar' | 'songsterr' | 'other'
 
-export type Role = 'lesson' | 'tab' | 'chords' | 'backing' | 'performance' | 'other'
+
 
 export type Confidence = 'high' | 'low'
 
@@ -12,7 +12,6 @@ export interface ParsedLink {
   url: string
   /** 'yt:<id>', 'ytpl:<id>', 'ug:<id>', 'ss:<id>' or 'url:<normalized url>'. */
   canonicalKey: string
-  role: Role
 
   ytVideoId?: string
   ytStartSec?: number

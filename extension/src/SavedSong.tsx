@@ -1,13 +1,13 @@
 // Popup state 6.2 (extension/SPEC.md): this page is already saved on a song.
 import { useEffect, useRef, useState } from 'react'
-import { KEY_ROOTS, ROLES, SITE_NAMES, STATUSES, mergeTags, type KeyMode, type Role, type Status } from '@shared'
+import { KEY_ROOTS, SITE_NAMES, STATUSES, mergeTags, type KeyMode, type Status } from '@shared'
 import { countOpens, deleteSong, patchSong, patchSongNow, recordOpen, removeSource, type SongDoc, type SongPatch, type SourceDoc } from './data'
 import { openedText, timesText } from './format'
 import { songUrl } from './config'
 import { Footer, Header } from './layout'
-import { Chips, Field, TagInput } from './ui'
+import { Field, TagInput } from './ui'
 
-interface Form { title: string; artist: string; key: string; status: Status; tags: string[]; role: Role }
+interface Form { title: string; artist: string; key: string; status: Status; tags: string[]; linkTitle: string }
 
 const keyValue = (root: string | null, mode: KeyMode | null) => (root ? `${root}|${mode ?? 'major'}` : '')
 const KEY_OPTIONS = KEY_ROOTS.flatMap((r) => (['major', 'minor'] as const).map((m) => ({ value: `${r}|${m}`, label: `${r} ${m}` })))
@@ -18,7 +18,7 @@ const formOf = (song: SongDoc, src: SourceDoc | undefined): Form => ({
   key: keyValue(song.keyRoot, song.keyMode),
   status: song.status,
   tags: song.tags,
-  role: src?.role ?? 'other',
+  linkTitle: src?.title ?? '',
 })
 
 /** What differs between the form and the saved song; null when nothing does. Only these fields are ever written. */
@@ -34,7 +34,10 @@ function diff(f: Form, song: SongDoc, canonicalKey: string): SongPatch | null {
   const tags = mergeTags([], f.tags)
   if (JSON.stringify(tags) !== JSON.stringify(song.tags)) patch.tags = tags
   const src = song.sources.find((s) => s.canonicalKey === canonicalKey)
-  if (src && f.role !== src.role) patch.sources = song.sources.map((s) => (s.id === src.id ? { ...s, role: f.role } : s))
+  const linkTitle = f.linkTitle.trim()
+  if (src && (linkTitle !== (src.title ?? ''))) {
+    patch.sources = song.sources.map((s) => (s.id === src.id ? { ...s, title: linkTitle || null } : s))
+  }
   return Object.keys(patch).length ? patch : null
 }
 
@@ -154,35 +157,39 @@ export function SavedSong({ uid, initial, canonicalKey, email, onSignOut, onChan
           )}
         </div>
 
-        <div className="stack">
-          <Field label="Title"><input className="input" value={form.title} onChange={(e) => set('title', e.target.value)} /></Field>
-          <Field label="Artist"><input className="input" value={form.artist} onChange={(e) => set('artist', e.target.value)} /></Field>
-          <div className="row">
-            <Field label="Key">
-              <select className="input" value={form.key} onChange={(e) => set('key', e.target.value)}>
-                <option value="">None</option>
-                {KEY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </Field>
-            <Field label="Status">
-              <select className="input" value={form.status} onChange={(e) => set('status', e.target.value as Status)}>
-                {STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-              </select>
-            </Field>
-          </div>
-          <TagInput tags={form.tags} onChange={(t) => set('tags', t)} />
-        </div>
-
         {src && (
-          <section className="section">
+          <section className="section first">
             <h2 className="eyebrow">This link · {SITE_NAMES[src.site]}</h2>
-            <Chips label="Role" value={form.role} onChange={(r) => set('role', r)} options={ROLES} />
+            <Field label="Link title">
+              <input className="input" value={form.linkTitle} placeholder="The page's title" onChange={(e) => set('linkTitle', e.target.value)} />
+            </Field>
             <div className="actions">
-              <button className="btn" onClick={() => opened(src.id)}>Mark opened now</button>
               <button className="link danger" onClick={() => void remove()}>Remove link</button>
             </div>
           </section>
         )}
+
+        <section className={src ? 'section' : 'section first'}>
+          <h2 className="eyebrow">Song</h2>
+          <div className="stack">
+            <Field label="Title"><input className="input" value={form.title} onChange={(e) => set('title', e.target.value)} /></Field>
+            <Field label="Artist"><input className="input" value={form.artist} onChange={(e) => set('artist', e.target.value)} /></Field>
+            <div className="row">
+              <Field label="Key">
+                <select className="input" value={form.key} onChange={(e) => set('key', e.target.value)}>
+                  <option value="">None</option>
+                  {KEY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </Field>
+              <Field label="Status">
+                <select className="input" value={form.status} onChange={(e) => set('status', e.target.value as Status)}>
+                  {STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                </select>
+              </Field>
+            </div>
+            <TagInput tags={form.tags} onChange={(t) => set('tags', t)} />
+          </div>
+        </section>
 
         {others.length > 0 && (
           <section className="section">
@@ -190,7 +197,7 @@ export function SavedSong({ uid, initial, canonicalKey, email, onSignOut, onChan
             <div className="others">
               {others.map((o) => (
                 <button key={o.id} className="other" onClick={() => { void chrome.tabs.create({ url: o.url }); opened(o.id) }}>
-                  <span className="other-main">{SITE_NAMES[o.site]} · {ROLES.find((r) => r.value === o.role)?.label ?? o.role}{o.label ? ` · ${o.label}` : ''}</span>
+                  <span className="other-main">{SITE_NAMES[o.site]}{o.title || o.label ? ` · ${o.title || o.label}` : ""}</span>
                   <span className="other-sub">{openedText(o.lastOpenedAt, now)}</span>
                 </button>
               ))}

@@ -14,7 +14,7 @@ export interface QuerySong<T extends TimeLike = TimeLike> {
   keyRoot: string | null
   status: Status
   tags: string[]
-  sources: { site: Site; label: string | null }[]
+  sources: { site: Site; label: string | null; title?: string | null }[]
   createdAt: T
   lastOpenedAt: T | null
 }
@@ -41,12 +41,12 @@ export const SORTS: { value: SortKey; label: string }[] = [
   { value: 'az', label: 'A–Z' },
 ]
 
-/** Search matches title, artist, tags and source labels; every word of the query must appear somewhere. */
+/** Search matches title, artist, tags, source labels and link titles; every word of the query must appear somewhere. */
 export function matchesQuery(song: QuerySong, query: string): boolean {
   const words = normalizeForSearch(query).split(' ').filter(Boolean)
   if (words.length === 0) return true
   const haystack = normalizeForSearch(
-    [song.title, song.artist ?? '', ...song.tags, ...song.sources.map((s) => s.label ?? '')].join(' '),
+    [song.title, song.artist ?? '', ...song.tags, ...song.sources.flatMap((s) => [s.label ?? '', s.title ?? ''])].join(' '),
   )
   return words.every((w) => haystack.includes(w))
 }

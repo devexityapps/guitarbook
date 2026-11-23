@@ -1,5 +1,5 @@
 import type { Source } from './model.ts'
-import type { ParsedLink, Role } from './types.ts'
+import type { ParsedLink } from './types.ts'
 import { normalizeForMatch } from './text.ts'
 
 interface SongLike {
@@ -40,18 +40,19 @@ export function mergeTags(existing: string[], add: string[]): string[] {
 /** Build a Source from a parse result. Optional fields are left out (Firestore rejects `undefined`). */
 export function sourceFromParsed<T>(
   parsed: ParsedLink,
-  opts: { id: string; role: Role; label: string | null; now: T },
+  opts: { id: string; label: string | null; title?: string | null; now: T },
 ): Source<T> {
   const source: Source<T> = {
     id: opts.id,
     site: parsed.site,
     url: parsed.url,
     canonicalKey: parsed.canonicalKey,
-    role: opts.role,
     label: opts.label?.trim() || null,
     addedAt: opts.now,
     lastOpenedAt: null,
   }
+  const title = opts.title?.trim()
+  if (title) source.title = title
   if (parsed.ytVideoId !== undefined) source.ytVideoId = parsed.ytVideoId
   if (parsed.ytStartSec !== undefined) source.ytStartSec = parsed.ytStartSec
   if (parsed.ytPlaylistId !== undefined) source.ytPlaylistId = parsed.ytPlaylistId

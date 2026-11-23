@@ -92,8 +92,8 @@ Source {
   site: 'youtube' | 'ultimateguitar' | 'songsterr' | 'other'
   url: string                     // as the user gave it, minus tracking params
   canonicalKey: string            // 'yt:<videoId>', 'ug:<tabId>', 'ss:<songId>', or 'url:<normalized url>'
-  role: 'lesson' | 'tab' | 'chords' | 'backing' | 'performance' | 'other'
   label: string | null            // user's own label, e.g. "Simplified chords"
+  title?: string | null           // the link's own title (tab or bookmark title), separate from the song's title; prefilled on save, editable; absent on older links
   ytVideoId?: string
   ytStartSec?: number             // from t= param
   ytPlaylistId?: string
@@ -145,7 +145,7 @@ Single "Sign in with Google" button. After sign-in, go to Library.
 
 ### 4.2 Library (home)
 - **Header:** "Library" title, "Import" link, settings icon (sign out, export).
-- **Search:** matches title, artist, tags, source labels (case-insensitive, accent-insensitive).
+- **Search:** matches title, artist, tags, source labels and link titles (case-insensitive, accent-insensitive).
 - **Filters:**
   - Status chips: All, Learning, Can play, Wishlist, Shelved. Single-select. "All" includes Shelved items.
   - "Tags" chip opens a tag picker; multi-select, AND logic.
@@ -170,18 +170,18 @@ Single "Sign in with Google" button. After sign-in, go to Library.
 ### 4.3 Song detail
 - **Back link.** "Edit" opens the edit form (§4.5).
 - **Header:** title, artist, key pill, status pill, "Last opened X · opened N times".
-- **Links section:** one large tappable card per source. Each card shows site · role (uppercase label), the user's label (or a default like "Chords" / the role), and "Opened X ago" / "Never opened". Stale per-link times use the same amber rule.
+- **Links section:** one large tappable card per source. Each card shows the site (uppercase label), the link's title, else the user's label, else the link's host name, a YouTube thumbnail when there is one, and "Opened X ago" / "Never opened". Stale per-link times use the same amber rule.
 - **Tapping a card** opens the URL (see §6) and logs the open.
 - **"Add a link"** goes to Add, pre-targeted to this song.
-- **Each source has a menu:** edit label/role, remove link (confirm).
+- **Each source has a menu:** edit title and label, remove link (confirm).
 - **Tags and Notes** sections.
 
 ### 4.4 Add link
-- **URL field** with paste support. On input, run the parser (§5) and show what was detected, e.g. "Ultimate Guitar · Chords · Stevie Ray Vaughan / Pride and Joy". Unknown sites are allowed with site = 'other'.
+- **URL field** with paste support. On input, run the parser (§5) and show what was detected, e.g. "Ultimate Guitar · Stevie Ray Vaughan / Pride and Joy". Unknown sites are allowed with site = 'other'.
 - **If the link's `canonicalKey` already exists on any song:** say so ("Already saved on *Song*"), with a button to open that song. Don't add a duplicate.
 - **Else if the parsed title + artist match an existing song** (normalized: lowercase, strip punctuation and a leading "the"): show the "Already in your library" panel with two options, **Add to this song** (default) and **New song**.
 - **Else:** show the new-song form, prefilled from the parse: type, title, artist, key, status (default Wishlist), tags (including any tag the parser suggests, e.g. `ukulele`).
-- **Link fields:** optional label, plus a role chosen from chips (Lesson / Tab / Chords / Backing track / Performance / Other), prefilled from the parse.
+- **Link fields:** optional label (the link's title is kept from the page title when there is one, and can be edited from the link menu). There is no role or link-kind field.
 - **Primary button:** "Add to *Song*" or "Create song".
 - **Entered from Song detail:** skip matching and attach to that song.
 
@@ -198,7 +198,7 @@ Single "Sign in with Google" button. After sign-in, go to Library.
    - Only links inside the checked folders go on. Everything else in the file is discarded and never saved.
 3. **Keep every link in the chosen folders:**
    - Links where the parser returns youtube, ultimateguitar or songsterr are handled as §5 describes.
-   - Any other http(s) link is kept with site 'other' and role 'other'. Skip non-web bookmarks (`javascript:`, `chrome://`, `file:`) and say how many were skipped.
+   - Any other http(s) link is kept with site 'other'. Skip non-web bookmarks (`javascript:`, `chrome://`, `file:`) and say how many were skipped.
    - Summary line: "N links from the chosen folders: YouTube a · UG b · Songsterr c · Other d."
 4. **Skip duplicates:** links whose `canonicalKey` already exists in the library, with a count.
 5. **Subfolders as tags:**
@@ -230,7 +230,7 @@ Imported sources get `lastOpenedAt: null`. Bookmark add dates are not opens.
 
 ## 5. Link parsing (`shared/`)
 
-A pure function `parseLink(url: string, titleHint?: string)` returns `{ site, canonicalKey, role, fields..., titleGuess, artistGuess, suggestedTags, confidence }`. Unit-test it with fixtures taken from real bookmarks (ask the user for 20–30 sample URLs and titles before finalizing the patterns).
+A pure function `parseLink(url: string, titleHint?: string)` returns `{ site, canonicalKey, fields..., titleGuess, artistGuess, suggestedTags, confidence }`. Unit-test it with fixtures taken from real bookmarks (ask the user for 20–30 sample URLs and titles before finalizing the patterns).
 
 **Normalization (all sites):** trim; force https; strip `utm_*`, `si`, `feature`, `fbclid`, `gclid`; drop the fragment except where noted.
 
@@ -238,22 +238,19 @@ A pure function `parseLink(url: string, titleHint?: string)` returns `{ site, ca
 - **Video ID** from `watch?v=`, `youtu.be/<id>`, `/shorts/<id>`, `/embed/<id>`, `/live/<id>`.
 - **`t=` / `start=` → `ytStartSec`.** Accept `90`, `90s` and `1m30s` formats.
 - **`list=` → `ytPlaylistId`.** A playlist URL with no video is a source with canonicalKey `ytpl:<id>`.
-- **Role:** default 'lesson'. Use 'backing' if the title hint contains "backing track"; use 'performance' if it contains "official video", "live" or "official audio". This is a guess; the user can change it.
 - **Title and artist come only from the hint** (bookmark title, minus a trailing " - YouTube"). If the hint looks like "Artist - Song", split on the first " - ". If it contains lesson words ("lesson", "how to play", "tutorial", "licks", "scale", "exercise"), the item goes to "Check names" as song-or-lesson.
 
 **Ultimate Guitar:** hosts `tabs.ultimate-guitar.com`, `www.ultimate-guitar.com`.
 - **Path shape:** `/tab/<artist-slug>/<song-slug>-<type>-<id>`. The artist is the first segment. The trailing `-<type>-<id>` comes off the second segment, and the rest is the song.
 - **Slugs → display text:** hyphens to spaces, Title Case. Prefer the hint when present; UG page titles are assumed to contain the song and artist, but verify against fixtures.
-- **Type → role:** chords → 'chords'; tabs, bass, ukulele, pro, official, drums → 'tab'.
 - **Ukulele:** type 'ukulele' adds a suggested tag `ukulele` (returned as `suggestedTags` from the parser and applied when creating a new song or attaching to one).
-- **Verify the type list against real URLs before trusting it.** Unknown types → role 'tab', and keep the raw `ugType`.
+- **Verify the type list against real URLs before trusting it.** Keep the raw `ugType`.
 
 **Songsterr:** host `www.songsterr.com`.
 - **Path shape:** `/a/wsa/<slug>-tab-s<id>`. Anything after the id (e.g. a track suffix) is ignored for the canonical key.
 - **The slug joins artist and song with hyphens, and they can't be reliably separated.** Use the hint if it parses cleanly. Inspect real exported Songsterr bookmark titles to find their pattern; don't assume one. Otherwise set `confidence: 'low'`, put the whole slug in `titleGuess`, and route the item to "Check names".
-- **Role:** 'tab'.
 
-**Other:** site 'other'; canonicalKey `url:<normalized url>`; role 'other'.
+**Other:** site 'other'; canonicalKey `url:<normalized url>`.
 
 ---
 

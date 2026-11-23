@@ -30,13 +30,13 @@ test('mergeTags: case-insensitive de-dup, keeps first casing', () => {
 
 test('sourceFromParsed: copies only the fields that exist, trims the label', () => {
   const parsed = parseLink('https://youtu.be/dQw4w9WgXcQ?t=90')!
-  const s = sourceFromParsed(parsed, { id: 'x', role: 'lesson', label: '  Intro  ', now: 'NOW' })
+  const s = sourceFromParsed(parsed, { id: 'x', label: '  Intro  ', now: 'NOW' })
   assert.deepEqual(s, {
     id: 'x', site: 'youtube', url: 'https://youtu.be/dQw4w9WgXcQ?t=90', canonicalKey: 'yt:dQw4w9WgXcQ',
-    role: 'lesson', label: 'Intro', addedAt: 'NOW', lastOpenedAt: null, ytVideoId: 'dQw4w9WgXcQ', ytStartSec: 90,
+    label: 'Intro', addedAt: 'NOW', lastOpenedAt: null, ytVideoId: 'dQw4w9WgXcQ', ytStartSec: 90,
   })
   assert.equal('ugType' in s, false)
-  assert.equal(sourceFromParsed(parsed, { id: 'y', role: 'tab', label: '   ', now: 1 }).label, null)
+  assert.equal(sourceFromParsed(parsed, { id: 'y', label: '   ', now: 1 }).label, null)
 })
 
 test('relativeDays: calendar days, not 24-hour blocks', () => {
@@ -80,4 +80,13 @@ test('derivedFieldsStale', () => {
   assert.equal(derivedFieldsStale({ ...good, title: 'Blackbird 2' }), true)
   assert.equal(derivedFieldsStale({ ...good, sources: [] }), true)
   assert.equal(derivedFieldsStale({ ...good, matchKey: null }), true)
+})
+
+test('sourceFromParsed: link title is kept separately, trimmed, and left out when empty', () => {
+  const parsed = parseLink('https://www.youtube.com/watch?v=dQw4w9WgXcQ')!
+  const withTitle = sourceFromParsed(parsed, { id: 's1', label: null, title: '  Blues Soloing - Lesson 1  ', now: 1 })
+  assert.equal(withTitle.title, 'Blues Soloing - Lesson 1')
+  const without = sourceFromParsed(parsed, { id: 's2', label: null, title: '   ', now: 1 })
+  assert.equal('title' in without, false)
+  assert.equal('title' in sourceFromParsed(parsed, { id: 's3', label: null, now: 1 }), false)
 })

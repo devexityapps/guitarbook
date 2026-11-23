@@ -1,16 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Timestamp } from 'firebase/firestore'
-import { ROLES, SITE_NAMES, findMatchingSong, findSongByKey, mergeTags, parseLink, sourceFromParsed, type ParsedLink, type Role } from '@shared'
+import { SITE_NAMES, findMatchingSong, findSongByKey, mergeTags, parseLink, sourceFromParsed, type ParsedLink } from '@shared'
 import { createSong, newSongRef, newSourceId, setSources, useSongs, useUid, type SongDoc } from '../data'
-import { Chips, Field, Header, IconCheck, SongFields, emptySongForm, songFieldsFrom, type SongFormValues } from '../ui'
+import { Field, Header, IconCheck, SongFields, emptySongForm, songFieldsFrom, type SongFormValues } from '../ui'
 import { goBack, navigate, useRoute } from '../router'
-
-const roleLabel = (r: Role) => ROLES.find((x) => x.value === r)?.label ?? r
 
 function detectedText(p: ParsedLink): string {
   const names = p.titleGuess ? (p.artistGuess ? `${p.artistGuess} / ${p.titleGuess}` : p.titleGuess) : null
   if (p.site === 'other') return 'Website link · not YouTube, Ultimate Guitar or Songsterr'
-  return [SITE_NAMES[p.site], roleLabel(p.role), names].filter(Boolean).join(' · ')
+  return [SITE_NAMES[p.site], names].filter(Boolean).join(' · ')
 }
 
 function initialForm(p: ParsedLink): SongFormValues {
@@ -31,7 +29,6 @@ export function AddLink() {
 
   const [url, setUrl] = useState('')
   const [label, setLabel] = useState('')
-  const [role, setRole] = useState<Role | null>(null) // null = follow the parse
   const [mode, setMode] = useState<'attach' | 'new'>('attach')
   const [form, setForm] = useState<SongFormValues>(emptySongForm)
 
@@ -39,7 +36,6 @@ export function AddLink() {
   const key = parsed?.canonicalKey
   useEffect(() => {
     if (parsed) setForm(initialForm(parsed))
-    setRole(null)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when the link itself changes
   }, [key])
 
@@ -49,7 +45,6 @@ export function AddLink() {
   const matchId = match?.id
   useEffect(() => setMode('attach'), [matchId])
 
-  const effectiveRole: Role = role ?? parsed?.role ?? 'other'
   const attachTo: SongDoc | undefined = target ?? (mode === 'attach' ? match : undefined)
   const ready = songs !== null && parsed !== null && !duplicate && (!targetId || target !== undefined)
 
@@ -57,7 +52,7 @@ export function AddLink() {
     e.preventDefault()
     if (!ready || !parsed) return
     const now = Timestamp.now()
-    const source = sourceFromParsed(parsed, { id: newSourceId(), role: effectiveRole, label, now })
+    const source = sourceFromParsed(parsed, { id: newSourceId(), label, now })
     if (attachTo) {
       setSources(uid, attachTo, [...attachTo.sources, source], { tags: mergeTags(attachTo.tags, parsed.suggestedTags) })
       navigate(`/song/${attachTo.id}`, true)
@@ -107,11 +102,6 @@ export function AddLink() {
         {parsed && !duplicate && (
           <>
             <Field label="Label (optional)"><input className="input" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Simplified chords" /></Field>
-            <div className="field">
-              <span className="field-label">What is it?</span>
-              <Chips label="What is it?" value={effectiveRole} onChange={setRole} options={ROLES} />
-              <span className="hint">Filled in from the link. Change it if it's wrong.</span>
-            </div>
             {!attachTo && songs !== null && !targetId && (
               <>
                 <h2 className="section">New song</h2>

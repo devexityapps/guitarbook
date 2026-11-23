@@ -105,3 +105,9 @@ test('sort does not mutate its input', () => {
 test('collectTags: de-duplicated case-insensitively, most used first', () => {
   assert.deepEqual(collectTags(library), ['Blues', 'scales', 'shuffle', 'Texas blues'])
 })
+
+test('search also matches link titles', () => {
+  const withTitle = song({ title: 'Wonderful Tonight', artist: 'Eric Clapton', keyRoot: 'G', status: 'learning', created: 0, opened: null, sources: [{ site: 'youtube', label: null, title: 'Slow blues rhythm lesson' }] })
+  assert.equal(matchesQuery(withTitle, 'rhythm lesson'), true)
+  assert.equal(matchesQuery(withTitle, 'jazz'), false)
+})

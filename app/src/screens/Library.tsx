@@ -7,7 +7,7 @@ import {
 import { auth } from '../firebase'
 import { useSettings, useSongs, type SongDoc } from '../data'
 import { keyText, sinceOpened, toDate } from '../format'
-import { Chips, IconGuitar, IconPlay, IconPlus, IconSearch, Sheet, StatusPill } from '../ui'
+import { Chips, IconPlus, IconSearch, Sheet, StatusPill, Thumb } from '../ui'
 
 const SORT_KEY = 'guitarbook.sort'
 
@@ -37,20 +37,6 @@ const SITE_SHORT: { site: Site; label: string }[] = [
 
 /** First YouTube source with a video id (SPEC §4.2); playlist-only links have none. */
 const thumbVideoId = (song: SongDoc) => song.sources.find((s) => s.site === 'youtube' && s.ytVideoId)?.ytVideoId
-
-/** SPEC §7: built from the video id at render time, never stored or proxied. */
-function Thumb({ videoId }: { videoId: string | undefined }) {
-  const [failed, setFailed] = useState<string | null>(null)
-  if (videoId && failed !== videoId) {
-    return (
-      <span className="thumb">
-        <img src={`https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(videoId)} />
-        <span className="thumb-play"><IconPlay /></span>
-      </span>
-    )
-  }
-  return <span className="thumb placeholder"><IconGuitar /></span>
-}
 
 function Row({ song, showThumb, staleDays, now }: { song: SongDoc; showThumb: boolean; staleDays: number; now: Date }) {
   const sites = SITE_SHORT.filter((s) => song.sources.some((src) => src.site === s.site)).map((s) => s.label)

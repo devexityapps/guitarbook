@@ -82,3 +82,7 @@ h1 { margin: 0 0 8px; font-size: 18px; font-weight: 600; }
 
 .check { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); cursor: pointer; }
 .check input { width: 18px; height: 18px; accent-color: var(--amber); }
+.link-title { margin: 0; color: var(--text-2); font-size: 14px; overflow-wrap: anywhere; }
+.banner .row .btn { padding: 0 8px; white-space: nowrap; }
+.section.first { border-top: 0; margin-top: 0; padding-top: 0; }
+.banner.match { margin-top: 16px; }

@@ -1,17 +1,16 @@
 import { useState } from 'react'
-import { ROLES, SITE_NAMES, isStale, type Role } from '@shared'
+import { SITE_NAMES, isStale } from '@shared'
 import { recordOpen, setSources, useSettings, useSongs, useUid, type SongDoc, type SourceDoc } from '../data'
 import { keyText, lastOpenedText, openedText, toDate } from '../format'
-import { Chips, Field, Header, IconBack, IconDots, IconOut, IconPlus, Sheet, StatusPill } from '../ui'
+import { Field, Header, IconBack, IconDots, IconOut, IconPlus, Sheet, StatusPill, Thumb } from '../ui'
 import { goBack } from '../router'
 
-const roleLabel = (r: Role) => ROLES.find((x) => x.value === r)?.label ?? r
-const defaultLabel = (s: SourceDoc) => (s.site === 'youtube' && s.role === 'lesson' ? 'Lesson' : roleLabel(s.role))
+const defaultLabel = (s: SourceDoc) => { try { return new URL(s.url).hostname.replace(/^www\./, '') } catch { return SITE_NAMES[s.site] } }
 
 export function SongDetail({ id }: { id: string }) {
   const songs = useSongs()
   const uid = useUid()
-  const { staleDays } = useSettings()
+  const { staleDays, showThumbnails } = useSettings()
   const [menuFor, setMenuFor] = useState<string | null>(null)
   const [editing, setEditing] = useState<SourceDoc | null>(null)
 
@@ -56,14 +55,15 @@ export function SongDetail({ id }: { id: string }) {
             return (
               <div key={src.id} className="card source">
                 <a className="source-link" href={src.url} target="_blank" rel="noopener" onClick={() => recordOpen(uid, song, src.id)}>
+                  {showThumbnails && src.site === 'youtube' && src.ytVideoId && <Thumb videoId={src.ytVideoId} />}
                   <div className="source-body">
-                    <div className="eyebrow">{SITE_NAMES[src.site]} · {roleLabel(src.role)}</div>
-                    <div className="source-label">{src.label || defaultLabel(src)}</div>
+                    <div className="eyebrow">{SITE_NAMES[src.site]}{src.title && src.label ? ` · ${src.label}` : ''}</div>
+                    <div className="source-label">{src.title || src.label || defaultLabel(src)}</div>
                     <div className={`source-opened${stale ? ' stale' : ''}`}>{openedText(src.lastOpenedAt, now)}</div>
                   </div>
                   <IconOut />
                 </a>
-                <button className="icon-btn" aria-label={`Options for ${src.label || defaultLabel(src)}`} onClick={() => setMenuFor(src.id)}><IconDots /></button>
+                <button className="icon-btn" aria-label={`Options for ${src.title || src.label || defaultLabel(src)}`} onClick={() => setMenuFor(src.id)}><IconDots /></button>
               </div>
             )
           })}
@@ -89,8 +89,8 @@ export function SongDetail({ id }: { id: string }) {
         const src = song.sources.find((s) => s.id === menuFor)
         if (!src) return null
         return (
-          <Sheet title={src.label || defaultLabel(src)} onClose={() => setMenuFor(null)}>
-            <button className="btn" onClick={() => { setEditing(src); setMenuFor(null) }}>Edit label and role</button>
+          <Sheet title={src.title || src.label || defaultLabel(src)} onClose={() => setMenuFor(null)}>
+            <button className="btn" onClick={() => { setEditing(src); setMenuFor(null) }}>Edit title and label</button>
             <button className="btn danger" onClick={() => remove(src)}>Remove link</button>
             <button className="btn ghost" onClick={() => setMenuFor(null)}>Cancel</button>
           </Sheet>
@@ -104,15 +104,15 @@ export function SongDetail({ id }: { id: string }) {
 function EditSource({ song, source, onClose }: { song: SongDoc; source: SourceDoc; onClose: () => void }) {
   const uid = useUid()
   const [label, setLabel] = useState(source.label ?? '')
-  const [role, setRole] = useState<Role>(source.role)
+  const [title, setTitle] = useState(source.title ?? '')
   const save = () => {
-    setSources(uid, song, song.sources.map((s) => (s.id === source.id ? { ...s, label: label.trim() || null, role } : s)))
+    setSources(uid, song, song.sources.map((s) => (s.id === source.id ? { ...s, label: label.trim() || null, title: title.trim() || null } : s)))
     onClose()
   }
   return (
     <Sheet title="Edit link" onClose={onClose}>
+      <Field label="Link title (optional)"><input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="The page's title" /></Field>
       <Field label="Label (optional)"><input className="input" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Simplified chords" /></Field>
-      <div className="field"><span className="field-label">What is it?</span><Chips label="Role" value={role} onChange={setRole} options={ROLES} /></div>
       <button className="btn primary" onClick={save}>Save</button>
       <button className="btn ghost" onClick={onClose}>Cancel</button>
     </Sheet>

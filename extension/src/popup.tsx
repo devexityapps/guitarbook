@@ -184,6 +184,7 @@ function SignedIn({ user }: { user: User }) {
           key={page.parsed.canonicalKey}
           uid={user.uid}
           parsed={page.parsed}
+          pageTitle={page.title}
           playbackSec={page.playbackSec}
           match={lookup.match}
           initialStatus={lookup.status}

@@ -170,3 +170,17 @@ export function songFieldsFrom(v: SongFormValues) {
     notes: v.notes.trim(),
   }
 }
+
+/** SPEC §7: built from the video id at render time, never stored or proxied. */
+export function Thumb({ videoId }: { videoId: string | undefined }) {
+  const [failed, setFailed] = useState<string | null>(null)
+  if (videoId && failed !== videoId) {
+    return (
+      <span className="thumb">
+        <img src={`https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(videoId)} />
+        <span className="thumb-play"><IconPlay /></span>
+      </span>
+    )
+  }
+  return <span className="thumb placeholder"><IconGuitar /></span>
+}

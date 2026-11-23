@@ -10,23 +10,6 @@ export function Field({ label, children }: { label: string; children: React.Reac
   )
 }
 
-export function Chips<T extends string>({ label, value, onChange, options }: {
-  label: string
-  value: T
-  onChange: (v: T) => void
-  options: { value: T; label: string }[]
-}) {
-  return (
-    <div className="chips" role="group" aria-label={label}>
-      {options.map((o) => (
-        <button key={o.value} type="button" className={`chip${o.value === value ? ' on' : ''}`} aria-pressed={o.value === value} onClick={() => onChange(o.value)}>
-          {o.label}
-        </button>
-      ))}
-    </div>
-  )
-}
-
 export function TagInput({ tags, onChange }: { tags: string[]; onChange: (t: string[]) => void }) {
   const [text, setText] = useState('')
   const [adding, setAdding] = useState(false)
