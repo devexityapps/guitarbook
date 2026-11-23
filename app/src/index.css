@@ -161,6 +161,8 @@ textarea.input { resize: vertical; min-height: 88px; }
 .sort select { appearance: none; background: none; border: 0; color: var(--text); padding: 10px 26px 10px 8px; min-height: 44px; cursor: pointer;
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23eceef1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 4px center; }
 .sort select option { background: var(--surface); color: var(--text); }
+/* the select is as wide as its longest option; keep the chosen label against the chevron */
+.sort select { text-align: right; text-align-last: right; }
 .list { border-top: 1px solid var(--border); }
 .row-link { align-items: center; gap: 14px; }
 .row-main { flex: 1; min-width: 0; gap: 2px; }
