@@ -5,7 +5,7 @@
 **Icon:** `design/icon.svg` (full) and `design/icon-small.svg` (32px and below).
 - **Design:** a closed amber book (`#F0A63A`) on a dark tile (`#121417`), with cream page edges (`#EDE3D1`) on the right and a G major chord diagram drawn on the cover in dark lines.
 - **Small sizes:** at 32px and below (favicon), use the simplified diagram from the mockup (3 strings, 2 frets, heavier lines).
-- **Files:** the two SVGs in `design/` are the source. Export PNGs at 192 and 512, plus a maskable 512 with the book kept inside the safe zone (roughly the central 80%).
+- **Files:** the two SVGs in `design/` are the source, plus `design/icon-maskable.svg` (full-bleed tile, book scaled to 0.8 inside the safe zone). PNGs in `app/public/`, made from them with macOS `sips`: `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, and `apple-touch-icon.png` (180, from the maskable design, for the iPhone home screen).
 - **Originality:** the icon is an original design; don't swap in stock guitar or brand imagery.
 
 **Mockups:** screenshots in `design/` (Library, Song detail, Add link, Import bookmarks, Settings). Match their layout and colors; the sample songs and numbers in them are placeholder data. Where a screenshot and this spec disagree, the spec wins. In particular, `import-bookmarks.png` predates the folder picker, the 'other' links and the subfolder tags (§4.6).
@@ -53,7 +53,7 @@ v1 is **organization + open tracking only**. There's no review scheduling yet, b
 - **`shared/`** holds code more than one part will need later: link parsing, URL normalization, data types. `app/` imports from it. No React or Firebase imports in `shared/`.
 - **App:** Vite + React + TypeScript. Keep dependencies few.
 - **Backend:** Firebase Auth (Google sign-in only), Firestore, Firebase Hosting. No Cloud Functions in v1.
-- **PWA:** installable manifest and icons, app shell cached for offline (e.g. `vite-plugin-pwa`).
+- **PWA:** `vite-plugin-pwa`. Web manifest (name and short name "Guitarbook", standalone, dark `#121417` theme and background, the icons above). A service worker precaches the app shell and assets so it opens offline, and caches Google Fonts; it updates itself on the next load after a deploy. Firebase Auth pages (`/__/`) and `extension-auth.html` always go to the network. iPhone meta tags and the touch icon are in `index.html`. Hosting serves `sw.js`, `registerSW.js` and the manifest with `no-cache`.
 - **Firestore offline cache:** enable persistent local cache (`initializeFirestore` with `persistentLocalCache` + `persistentMultipleTabManager`). Required so open events survive the page being backgrounded when a link opens another app.
 - **Firebase project ID:** neutral (e.g. `practice-library`). Project IDs can't be renamed.
 
@@ -144,7 +144,7 @@ Phone-first (390px wide target), works at desktop width. Dark theme as in the mo
 Single "Sign in with Google" button. After sign-in, go to Library.
 
 ### 4.2 Library (home)
-- **Header:** "Library" title; on the right a search icon, a filters icon, then a gear icon. Until the Settings screen (§4.7) is built, the gear opens a small menu with Sign out; once it exists, the gear opens Settings, which holds Sign out, Export and Import bookmarks. Search and filters icons are hidden while the library is empty.
+- **Header:** "Library" title; on the right a search icon, a filters icon, then a gear icon that opens Settings (§4.7, route `#/settings`). Search and filters icons are hidden while the library is empty.
 - **Search:** the box is hidden by default; the search icon opens it with the cursor in it. Tapping the icon again (or Escape in an empty box) closes it and clears the search. Matches title, artist, tags, source labels and link titles (case-insensitive, accent-insensitive).
 - **Filters:** the filters icon opens one sheet with every filter; there are no filter buttons above the list. Changes apply as you tap. The sheet ends with "Clear all" and "Show N items" (closes it).
   - **Status** (Learning, Polishing, Ready, Wishlist): multi-select, OR logic (a song has one status). None picked = all statuses.
@@ -232,11 +232,12 @@ Single "Sign in with Google" button. After sign-in, go to Library.
 
 Imported sources get `lastOpenedAt: null`. Bookmark add dates are not opens.
 
-### 4.7 Settings (minimal)
+### 4.7 Settings (minimal; layout as `design/settings.png`)
+- **Back arrow** to the Library; "Settings" title. Sections: Library, Your data, Account.
 - **Highlight items not opened in:** choice of 7, 14, 30, 60 or 90 days (default 30). Saved to `users/{uid}.settings.staleDays`, so it applies on every device.
 - **Show thumbnails:** on/off (default on). Saved to `users/{uid}.settings.showThumbnails`.
-- Sign out.
-- **Export JSON:** downloads `{ settings, songs, events }` for the user. Charts are inside `songs` (their `text`), so they're included.
+- **Your data → Export all data (JSON):** downloads `guitarbook-export-YYYY-MM-DD.json` with `{ settings, songs, events }` for the user (dates as ISO strings). Charts are inside `songs` (their `text`), so they're included.
+- **Account:** "Signed in as *email*" and a full-width **Sign out** button. A small Guitarbook mark at the bottom.
 
 ### 4.8 Charts (the user's own chord or tab text)
 A chart is a resource that holds text instead of pointing to a page: tab or chords the user wrote, e.g. their own tab for "Kiss of Life".

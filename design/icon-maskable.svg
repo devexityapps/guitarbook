@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 100 100">
+  <!-- Maskable: full-bleed tile; the book scaled to 0.8 about the centre so it sits inside the safe zone (radius 40). -->
+  <rect width="100" height="100" fill="#121417"/>
+  <g transform="translate(50 50) scale(0.8) translate(-51.5 -50.5)">
+    <rect x="29" y="17" width="52" height="71" rx="4" fill="#EDE3D1"/>
+    <path d="M79.5 22V83M77.5 22V83" stroke="#B9AE9B" stroke-width="0.8"/>
+    <rect x="22" y="13" width="55" height="72" rx="4" fill="#F0A63A"/>
+    <rect x="22" y="13" width="8" height="72" rx="3" fill="#E3992F"/>
+    <g stroke="#121417" stroke-linecap="round" fill="none">
+      <path stroke-width="3.5" d="M38 30H70"/>
+      <path stroke-width="1.8" d="M38 40H70M38 50H70M38 60H70M38 70H70"/>
+      <path stroke-width="1.8" d="M38 30V72M44.4 30V72M50.8 30V72M57.2 30V72M63.6 30V72M70 30V72"/>
+      <circle stroke-width="1.6" cx="50.8" cy="23.5" r="2.2"/>
+      <circle stroke-width="1.6" cx="57.2" cy="23.5" r="2.2"/>
+      <circle stroke-width="1.6" cx="63.6" cy="23.5" r="2.2"/>
+    </g>
+    <g fill="#121417">
+      <circle cx="38" cy="55" r="3.6"/>
+      <circle cx="44.4" cy="45" r="3.6"/>
+      <circle cx="70" cy="55" r="3.6"/>
+    </g>
+  </g>
+</svg>

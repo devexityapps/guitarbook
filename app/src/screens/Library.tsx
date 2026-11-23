@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { signOut } from 'firebase/auth'
 import {
   KEY_ROOTS, NO_FILTERS, SORTS, STATUSES, activeFilterCount, collectTags, filterSongs, isChart, isStale, sortSongs,
   type Filters, type ResourceSite, type SortKey,
 } from '@shared'
-import { auth } from '../firebase'
 import { useSettings, useSongs, type SongDoc } from '../data'
 import { keyText, sinceOpened, toDate } from '../format'
 import { Chips, IconFilters, IconGear, IconPlus, IconSearch, Sheet, SITE_ICONS, StatusPill, Thumb } from '../ui'
@@ -81,15 +79,14 @@ export function Library() {
   const [sort, setSort] = useState<SortKey>(loadSort)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
 
   useEffect(() => {
-    if (!addOpen && !menuOpen) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setAddOpen(false); setMenuOpen(false) } }
+    if (!addOpen) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setAddOpen(false) }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [addOpen, menuOpen])
+  }, [addOpen])
 
   /** The search box is hidden until the search icon opens it; closing it clears the search so nothing stays filtered out of sight. */
   const toggleSearch = () => {
@@ -135,18 +132,8 @@ export function Library() {
               {filterCount > 0 && <span className="badge" aria-hidden="true">{filterCount}</span>}
             </button>
           )}
-          <button type="button" className="icon-btn" aria-label="Settings" aria-haspopup="menu" aria-expanded={menuOpen} aria-controls="library-menu" onClick={() => setMenuOpen((o) => !o)}>
-            <IconGear />
-          </button>
+          <a className="icon-btn" href="#/settings" aria-label="Settings"><IconGear /></a>
         </div>
-        {menuOpen && (
-          <>
-            <div className="menu-backdrop" onClick={() => setMenuOpen(false)} />
-            <div className="top-menu" id="library-menu" role="menu" aria-label="Settings">
-              <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); void signOut(auth) }}>Sign out</button>
-            </div>
-          </>
-        )}
       </header>
 
       {songs === null ? (

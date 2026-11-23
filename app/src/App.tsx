@@ -9,10 +9,12 @@ import { AddLink } from './screens/AddLink'
 import { NewSong } from './screens/NewSong'
 import { SongDetail } from './screens/SongDetail'
 import { ChartEditor, ChartViewer, NewChart } from './screens/Chart'
+import { Settings } from './screens/Settings'
 
 function Routes() {
   const { path } = useRoute()
   if (path[0] === 'add') return <AddLink />
+  if (path[0] === 'settings') return <Settings />
   if (path[0] === 'new') return path[1] === 'chart' ? <NewChart /> : <NewSong />
   if (path[0] === 'song' && path[1]) {
     // Charts (SPEC §4.8): #/song/<id>/chart/new, #/song/<id>/chart/<sourceId>, #/song/<id>/chart/<sourceId>/edit

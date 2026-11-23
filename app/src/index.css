@@ -217,3 +217,20 @@ textarea.input { resize: vertical; min-height: 88px; }
 .seg-toggle { display: inline-flex; padding: 2px; gap: 2px; border: 1px solid var(--border); border-radius: 12px; }
 .seg-toggle button { min-height: 36px; padding: 0 12px; border: 0; border-radius: 10px; background: none; color: var(--text-2); font-size: 14px; font-weight: 600; cursor: pointer; }
 .seg-toggle button.on { background: #eceef1; color: #121417; }
+
+/* ---- settings (SPEC §4.7, design/settings.png) ------------------------------- */
+.settings-top { justify-content: flex-start; gap: 12px; padding-left: 8px; }
+.settings-title { font-size: 1.9rem; font-weight: 700; }
+.settings-top + .pad > .section:first-child { margin-top: 12px; }
+.settings-card { display: flex; flex-direction: column; gap: 6px; padding: 18px 18px; border-radius: 16px; }
+.settings-card-title { font-size: 17px; font-weight: 600; color: var(--text); }
+.stale-choices { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 10px; }
+.stale-choice { min-height: 48px; border-radius: 12px; border: 1px solid var(--border); background: transparent; font-size: 16px; font-weight: 500; cursor: pointer; }
+.stale-choice.on { background: var(--amber); border-color: var(--amber); color: #121417; font-weight: 600; }
+.settings-toggle { flex-direction: row; align-items: center; justify-content: space-between; gap: 16px; cursor: pointer; }
+.checkbox { flex: none; width: 26px; height: 26px; accent-color: var(--amber); cursor: pointer; }
+.settings-row { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; padding: 0 18px; border-radius: 16px; color: var(--text-2); text-align: left; cursor: pointer; }
+.settings-row:disabled { opacity: .6; cursor: default; }
+.signed-in-as { margin: 0 0 12px; overflow-wrap: anywhere; }
+.wide-btn { width: 100%; min-height: 56px; border-radius: 16px; font-size: 17px; }
+.settings-foot { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 56px; }

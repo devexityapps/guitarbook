@@ -133,3 +133,23 @@ export async function deleteSong(uid: string, id: string) {
     void batch.commit().catch(fail('delete the song'))
   }
 }
+
+/** SPEC §4.7: one setting, saved to users/{uid}.settings so it applies on every device. */
+export function saveSetting<K extends keyof Settings>(uid: string, key: K, value: Settings[K]) {
+  void setDoc(doc(db, 'users', uid), { settings: { [key]: value } }, { merge: true }).catch(fail('save the setting'))
+}
+
+/**
+ * SPEC §4.7 export: { settings, songs, events } for this user, Timestamps as ISO strings so the file is plain JSON.
+ * Songs come from the live list already loaded; events are read once (from the server when online, else the cache).
+ */
+export async function exportData(uid: string, settings: Settings, songs: SongDoc[]): Promise<string> {
+  const events = (await getDocs(collection(db, 'users', uid, 'events'))).docs.map((d) => ({ id: d.id, ...d.data() }))
+  const plain = (v: unknown): unknown => {
+    if (v instanceof Timestamp) return v.toDate().toISOString()
+    if (Array.isArray(v)) return v.map(plain)
+    if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, plain(x)]))
+    return v
+  }
+  return JSON.stringify({ exportedAt: new Date().toISOString(), settings, songs: plain(songs), events: plain(events) }, null, 2)
+}
