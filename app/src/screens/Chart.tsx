@@ -18,6 +18,40 @@ export function chartOpensInNewTab(): boolean {
   return !standalone
 }
 
+// Columns (SPEC §4.8): remembered per chart on this device, 1 to MAX_COLUMNS.
+const MAX_COLUMNS = 4
+const columnsKey = (chartId: string) => `guitarbook.chartColumns.${chartId}`
+
+function loadColumns(chartId: string): number {
+  try {
+    const n = Number(window.localStorage.getItem(columnsKey(chartId)))
+    if (Number.isInteger(n) && n >= 1 && n <= MAX_COLUMNS) return n
+  } catch {
+    /* storage unavailable: one column */
+  }
+  return 1
+}
+
+function saveColumns(chartId: string, n: number) {
+  try {
+    if (n === 1) window.localStorage.removeItem(columnsKey(chartId))
+    else window.localStorage.setItem(columnsKey(chartId), String(n))
+  } catch {
+    /* ignore */
+  }
+}
+
+/** The longest line in characters, tabs expanded to the next multiple of 8 (the viewer's tab-size), so every column fits it. */
+function longestLine(text: string): number {
+  let max = 0
+  for (const line of text.split('\n')) {
+    let w = 0
+    for (const ch of line) w = ch === '\t' ? (Math.floor(w / 8) + 1) * 8 : w + 1
+    max = Math.max(max, w)
+  }
+  return max
+}
+
 const SIZE_KEY = 'guitarbook.chartFontSize'
 const SIZES = [11, 12, 13, 14, 16, 18, 20, 22, 25, 28, 32]
 const DEFAULT_SIZE = 14
@@ -103,6 +137,7 @@ export function ChartViewer({ songId, sourceId }: { songId: string; sourceId: st
 
 function Viewer({ song, chart }: { song: SongDoc; chart: SourceDoc }) {
   const [size, setSize] = useState(loadSize)
+  const [columns, setColumnsState] = useState(() => loadColumns(chart.id))
   const [full, setFull] = useState(false)
   const pageRef = useRef<HTMLElement>(null)
   useWakeLock()
@@ -136,12 +171,40 @@ function Viewer({ song, chart }: { song: SongDoc; chart: SourceDoc }) {
     setSize(next)
     saveSize(next)
   }
+  const setColumns = (n: number) => {
+    const next = Math.min(MAX_COLUMNS, Math.max(1, Math.round(n)))
+    setColumnsState(next)
+    saveColumns(chart.id, next)
+  }
   const sizeButtons = (
     <>
       <button type="button" className="btn small-btn" aria-label="Smaller text" disabled={size === SIZES[0]} onClick={() => step(-1)}>A−</button>
       <button type="button" className="btn small-btn" aria-label="Larger text" disabled={size === SIZES[SIZES.length - 1]} onClick={() => step(1)}>A+</button>
+      <div className="stepper" role="group" aria-label="Columns">
+        <span className="stepper-label">Columns</span>
+        <button type="button" className="btn small-btn stepper-btn" aria-label="Fewer columns" disabled={columns <= 1} onClick={() => setColumns(columns - 1)}>−</button>
+        <input
+          className="stepper-input"
+          type="number"
+          inputMode="numeric"
+          min={1}
+          max={MAX_COLUMNS}
+          value={columns}
+          aria-label="Number of columns"
+          onChange={(e) => { const n = parseInt(e.target.value, 10); if (n >= 1 && n <= MAX_COLUMNS) setColumns(n) }}
+        />
+        <button type="button" className="btn small-btn stepper-btn" aria-label="More columns" disabled={columns >= MAX_COLUMNS} onClick={() => setColumns(columns + 1)}>+</button>
+      </div>
     </>
   )
+  // With 2+ columns the text flows down one column and on into the next. Each column is as wide as the longest line,
+  // so lines are never cut or overlapped; if that's wider than the window, the chart scrolls sideways.
+  const text = chart.text ?? ''
+  const gapCh = 4
+  const textStyle: React.CSSProperties =
+    columns > 1
+      ? { fontSize: `${size}px`, columnCount: columns, columnGap: `${gapCh}ch`, width: `calc(${columns * longestLine(text) + (columns - 1) * gapCh}ch + 32px)`, minWidth: '100%' }
+      : { fontSize: `${size}px` }
 
   return (
     <main ref={pageRef} className={`chart-page${full ? ' full' : ''}`}>
@@ -162,7 +225,9 @@ function Viewer({ song, chart }: { song: SongDoc; chart: SourceDoc }) {
           </div>
         </>
       )}
-      <pre className="chart-text" style={{ fontSize: `${size}px` }}>{chart.text ?? ''}</pre>
+      <div className="chart-scroll">
+        <pre className={`chart-text${columns > 1 ? ' columns' : ''}`} style={textStyle}>{text}</pre>
+      </div>
       {full && (
         <div className="chart-float">
           {sizeButtons}

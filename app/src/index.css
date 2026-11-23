@@ -198,9 +198,18 @@ textarea.input { resize: vertical; min-height: 88px; }
 .chart-tools { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 16px 8px; }
 .small-btn { min-height: 40px; padding: 0 14px; border-radius: 12px; font-size: 15px; }
 /* No wrapping and exact spacing, so chords over lyrics and tab staves stay aligned; wide lines scroll sideways. */
-.chart-text { flex: 1; margin: 0; padding: 12px 16px 120px; overflow-x: auto; white-space: pre; line-height: 1.35; color: var(--text); font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Roboto Mono', 'Liberation Mono', monospace; -webkit-text-size-adjust: none; text-size-adjust: none; tab-size: 8; }
+.chart-scroll { flex: 1; overflow-x: auto; }
+.chart-text { margin: 0; padding: 12px 16px 120px; overflow-x: auto; white-space: pre; line-height: 1.35; color: var(--text); font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Roboto Mono', 'Liberation Mono', monospace; -webkit-text-size-adjust: none; text-size-adjust: none; tab-size: 8; }
 .chart-page.full .chart-text { padding-top: calc(16px + env(safe-area-inset-top)); }
-.chart-float { position: fixed; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 5; display: flex; gap: 6px; padding: 6px; border: 1px solid var(--border); border-radius: 14px; background: rgba(28, 31, 36, .92); box-shadow: 0 6px 20px rgba(0,0,0,.45); }
+.chart-text.columns { overflow: visible; column-fill: balance; column-rule: 1px solid var(--border); }
+/* Columns stepper: − [n] + */
+.stepper { display: inline-flex; align-items: center; gap: 4px; }
+.stepper-label { color: var(--text-2); font-size: 14px; margin: 0 4px 0 6px; }
+.stepper-btn { min-width: 40px; padding: 0; font-size: 18px; }
+.stepper-input { width: 44px; min-height: 40px; padding: 0; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); text-align: center; font-size: 16px; -moz-appearance: textfield; appearance: textfield; }
+.stepper-input::-webkit-inner-spin-button, .stepper-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.stepper-input:focus { border-color: var(--amber); outline: none; }
+.chart-float { position: fixed; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 5; display: flex; flex-wrap: wrap; justify-content: flex-end; max-width: calc(100% - 24px); gap: 6px; padding: 6px; border: 1px solid var(--border); border-radius: 14px; background: rgba(28, 31, 36, .92); box-shadow: 0 6px 20px rgba(0,0,0,.45); }
 /* 16px so iPhone doesn't zoom the page when the box is focused */
 .chart-input { min-height: 320px; white-space: pre; overflow-x: auto; font-size: 16px; line-height: 1.35; font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Roboto Mono', 'Liberation Mono', monospace; }
 .section.first { margin-top: 8px; }
