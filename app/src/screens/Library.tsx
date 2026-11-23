@@ -7,7 +7,7 @@ import {
 import { auth } from '../firebase'
 import { useSettings, useSongs, type SongDoc } from '../data'
 import { keyText, sinceOpened, toDate } from '../format'
-import { Chips, IconPlus, IconSearch, Sheet, StatusPill, Thumb } from '../ui'
+import { Chips, IconPlus, IconSearch, Sheet, SITE_ICONS, StatusPill, Thumb } from '../ui'
 
 const SORT_KEY = 'guitarbook.sort'
 
@@ -38,6 +38,13 @@ const SITE_SHORT: { site: Site; label: string }[] = [
 /** First YouTube source with a video id (SPEC §4.2); playlist-only links have none. */
 const thumbVideoId = (song: SongDoc) => song.sources.find((s) => s.site === 'youtube' && s.ytVideoId)?.ytVideoId
 
+/** A song whose links are all on one tab site (Songsterr or Ultimate Guitar) gets that site's icon in place of the placeholder. */
+function siteIcon(song: SongDoc): string | undefined {
+  const site = song.sources[0]?.site
+  return site && song.sources.every((s) => s.site === site) ? SITE_ICONS[site] : undefined
+}
+
+
 function Row({ song, showThumb, staleDays, now }: { song: SongDoc; showThumb: boolean; staleDays: number; now: Date }) {
   const sites = SITE_SHORT.filter((s) => song.sources.some((src) => src.site === s.site)).map((s) => s.label)
   const sub = [song.artist ?? (song.type === 'lesson' ? 'Lesson' : null), keyText(song.keyRoot, song.keyMode)].filter(Boolean).join(' · ')
@@ -46,7 +53,7 @@ function Row({ song, showThumb, staleDays, now }: { song: SongDoc; showThumb: bo
   return (
     <li>
       <a className="row-link" href={`#/song/${song.id}`}>
-        {showThumb && <Thumb videoId={thumbVideoId(song)} />}
+        {showThumb && <Thumb videoId={thumbVideoId(song)} icon={siteIcon(song)} />}
         <div className="row-main">
           <div className="row-title">{song.title}</div>
           {sub && <div className="row-sub">{sub}</div>}

@@ -1,5 +1,10 @@
 import { useState, type ReactNode } from 'react'
-import { KEY_ROOTS, STATUSES, mergeTags, type KeyMode, type SongType, type Status } from '@shared'
+import { KEY_ROOTS, STATUSES, mergeTags, type KeyMode, type Site, type SongType, type Status } from '@shared'
+import songsterrIcon from './assets/songsterr.webp'
+import ultimateGuitarIcon from './assets/ultimateguitar.png'
+
+/** Icons for the tab sites (YouTube links use the video thumbnail instead). */
+export const SITE_ICONS: Partial<Record<Site, string>> = { songsterr: songsterrIcon, ultimateguitar: ultimateGuitarIcon }
 
 // ---- icons -----------------------------------------------------------------
 const svg = { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true } as const
@@ -172,7 +177,7 @@ export function songFieldsFrom(v: SongFormValues) {
 }
 
 /** SPEC §7: built from the video id at render time, never stored or proxied. */
-export function Thumb({ videoId }: { videoId: string | undefined }) {
+export function Thumb({ videoId, icon }: { videoId: string | undefined; icon?: string }) {
   const [failed, setFailed] = useState<string | null>(null)
   if (videoId && failed !== videoId) {
     return (
@@ -182,5 +187,6 @@ export function Thumb({ videoId }: { videoId: string | undefined }) {
       </span>
     )
   }
+  if (icon) return <span className="thumb icon"><img src={icon} alt="" /></span>
   return <span className="thumb placeholder"><IconGuitar /></span>
 }

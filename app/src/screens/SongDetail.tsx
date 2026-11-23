@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { SITE_NAMES, isStale } from '@shared'
 import { recordOpen, setSources, useSettings, useSongs, useUid, type SongDoc, type SourceDoc } from '../data'
 import { keyText, lastOpenedText, openedText, toDate } from '../format'
-import { Field, Header, IconBack, IconDots, IconOut, IconPlus, Sheet, StatusPill, Thumb } from '../ui'
+import { Field, Header, IconBack, IconDots, IconOut, IconPlus, SITE_ICONS, Sheet, StatusPill, Thumb } from '../ui'
 import { goBack } from '../router'
 
 const defaultLabel = (s: SourceDoc) => { try { return new URL(s.url).hostname.replace(/^www\./, '') } catch { return SITE_NAMES[s.site] } }
@@ -56,6 +56,7 @@ export function SongDetail({ id }: { id: string }) {
               <div key={src.id} className="card source">
                 <a className="source-link" href={src.url} target="_blank" rel="noopener" onClick={() => recordOpen(uid, song, src.id)}>
                   {showThumbnails && src.site === 'youtube' && src.ytVideoId && <Thumb videoId={src.ytVideoId} />}
+                  {SITE_ICONS[src.site] && <img className="site-icon" src={SITE_ICONS[src.site]} width={40} height={40} alt="" />}
                   <div className="source-body">
                     <div className="eyebrow">{SITE_NAMES[src.site]}{src.title && src.label ? ` · ${src.label}` : ''}</div>
                     <div className="source-label">{src.title || src.label || defaultLabel(src)}</div>

@@ -161,7 +161,7 @@ Single "Sign in with Google" button. After sign-in, go to Library.
 - **Staleness:** highlight the right column in amber when the item has never been opened or was last opened more than `settings.staleDays` days ago.
 - **Thumbnails** (when `settings.showThumbnails` is on):
   - Show a small 16:9 thumbnail at the left of the row (about 72×40), from the song's first YouTube source.
-  - Songs with no YouTube source get a same-size neutral placeholder with a small guitar glyph, so rows line up.
+  - Songs whose links are all on one tab site (Songsterr or Ultimate Guitar) show that site's icon in that slot. Other songs with no YouTube source get a same-size neutral placeholder with a small guitar glyph, so rows line up.
   - Rules for loading the image: see §7.
 - **Navigation:** tapping a row goes to Song detail.
 - **Floating "Add link" button** goes to Add.
