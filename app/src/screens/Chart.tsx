@@ -41,6 +41,28 @@ function saveColumns(chartId: string, n: number) {
   }
 }
 
+/** Column spacing (SPEC §4.8): 'even' spreads the columns across the window; 'compact' makes each only as wide as it needs. */
+type Spacing = 'even' | 'compact'
+const spacingKey = (chartId: string) => `guitarbook.chartColumnSpacing.${chartId}`
+
+function loadSpacing(chartId: string): Spacing {
+  try {
+    if (window.localStorage.getItem(spacingKey(chartId)) === 'compact') return 'compact'
+  } catch {
+    /* storage unavailable: even */
+  }
+  return 'even'
+}
+
+function saveSpacing(chartId: string, s: Spacing) {
+  try {
+    if (s === 'even') window.localStorage.removeItem(spacingKey(chartId))
+    else window.localStorage.setItem(spacingKey(chartId), s)
+  } catch {
+    /* ignore */
+  }
+}
+
 /** The longest line in characters, tabs expanded to the next multiple of 8 (the viewer's tab-size), so every column fits it. */
 function longestLine(text: string): number {
   let max = 0
@@ -138,6 +160,8 @@ export function ChartViewer({ songId, sourceId }: { songId: string; sourceId: st
 function Viewer({ song, chart }: { song: SongDoc; chart: SourceDoc }) {
   const [size, setSize] = useState(loadSize)
   const [columns, setColumnsState] = useState(() => loadColumns(chart.id))
+  const [spacing, setSpacingState] = useState<Spacing>(() => loadSpacing(chart.id))
+  const setSpacing = (s: Spacing) => { setSpacingState(s); saveSpacing(chart.id, s) }
   const [full, setFull] = useState(false)
   const pageRef = useRef<HTMLElement>(null)
   useWakeLock()
@@ -195,15 +219,31 @@ function Viewer({ song, chart }: { song: SongDoc; chart: SourceDoc }) {
         />
         <button type="button" className="btn small-btn stepper-btn" aria-label="More columns" disabled={columns >= MAX_COLUMNS} onClick={() => setColumns(columns + 1)}>+</button>
       </div>
+      {columns > 1 && (
+        <div className="seg-toggle" role="group" aria-label="Column spacing">
+          {(['even', 'compact'] as const).map((s) => (
+            <button key={s} type="button" className={spacing === s ? 'on' : undefined} aria-pressed={spacing === s} onClick={() => setSpacing(s)}>
+              {s === 'even' ? 'Even' : 'Compact'}
+            </button>
+          ))}
+        </div>
+      )}
     </>
   )
-  // With 2+ columns the text flows down one column and on into the next. Each column is as wide as the longest line,
-  // so lines are never cut or overlapped; if that's wider than the window, the chart scrolls sideways.
+  // With 2+ columns the text flows down one column and on into the next. Each column is at least as wide as the longest
+  // line, so lines are never cut or overlapped; if that's wider than the window, the chart scrolls sideways.
+  // "Even" also stretches the columns to fill the window; "Compact" keeps each to the longest line, packed to the left.
   const text = chart.text ?? ''
-  const gapCh = 4
+  const gapCh = spacing === 'compact' ? 3 : 4
   const textStyle: React.CSSProperties =
     columns > 1
-      ? { fontSize: `${size}px`, columnCount: columns, columnGap: `${gapCh}ch`, width: `calc(${columns * longestLine(text) + (columns - 1) * gapCh}ch + 32px)`, minWidth: '100%' }
+      ? {
+          fontSize: `${size}px`,
+          columnCount: columns,
+          columnGap: `${gapCh}ch`,
+          width: `calc(${columns * longestLine(text) + (columns - 1) * gapCh}ch + 32px)`,
+          ...(spacing === 'even' ? { minWidth: '100%' } : {}),
+        }
       : { fontSize: `${size}px` }
 
   return (

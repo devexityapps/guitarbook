@@ -213,3 +213,7 @@ textarea.input { resize: vertical; min-height: 88px; }
 /* 16px so iPhone doesn't zoom the page when the box is focused */
 .chart-input { min-height: 320px; white-space: pre; overflow-x: auto; font-size: 16px; line-height: 1.35; font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Roboto Mono', 'Liberation Mono', monospace; }
 .section.first { margin-top: 8px; }
+/* Column spacing: Even | Compact */
+.seg-toggle { display: inline-flex; padding: 2px; gap: 2px; border: 1px solid var(--border); border-radius: 12px; }
+.seg-toggle button { min-height: 36px; padding: 0 12px; border: 0; border-radius: 10px; background: none; color: var(--text-2); font-size: 14px; font-weight: 600; cursor: pointer; }
+.seg-toggle button.on { background: #eceef1; color: #121417; }
