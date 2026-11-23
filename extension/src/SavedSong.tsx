@@ -1,9 +1,9 @@
 // Popup state 6.2 (extension/SPEC.md): this page is already saved on a song.
 import { useEffect, useRef, useState } from 'react'
-import { KEY_ROOTS, SITE_NAMES, STATUSES, mergeTags, type KeyMode, type Status } from '@shared'
+import { KEY_ROOTS, SITE_NAMES, STATUSES, isChart, mergeTags, type KeyMode, type Status } from '@shared'
 import { countOpens, deleteSong, patchSong, patchSongNow, recordOpen, removeSource, type SongDoc, type SongPatch, type SourceDoc } from './data'
 import { openedText, timesText } from './format'
-import { songUrl } from './config'
+import { chartUrl, songUrl } from './config'
 import { Footer, Header } from './layout'
 import { Field, TagInput } from './ui'
 
@@ -195,10 +195,10 @@ export function SavedSong({ uid, initial, canonicalKey, email, onSignOut, onChan
 
         {others.length > 0 && (
           <section className="section">
-            <h2 className="eyebrow">Other links on this song</h2>
+            <h2 className="eyebrow">Other resources on this song</h2>
             <div className="others">
               {others.map((o) => (
-                <button key={o.id} className="other" onClick={() => { void chrome.tabs.create({ url: o.url }); opened(o.id) }}>
+                <button key={o.id} className="other" onClick={() => { void chrome.tabs.create({ url: isChart(o) ? chartUrl(song.id, o.id) : o.url }); opened(o.id) }}>
                   <span className="other-main">{SITE_NAMES[o.site]}{o.title || o.label ? ` · ${o.title || o.label}` : ""}</span>
                   <span className="other-sub">{openedText(o.lastOpenedAt, now)}</span>
                 </button>

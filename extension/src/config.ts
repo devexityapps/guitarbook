@@ -2,6 +2,8 @@
 export const APP_URL = (import.meta.env.VITE_APP_URL || 'https://guitarbook-eafba.web.app').replace(/\/+$/, '')
 export const libraryUrl = () => `${APP_URL}/#/`
 export const songUrl = (id: string) => `${APP_URL}/#/song/${id}`
+/** The app's viewer for one of the user's own charts (app SPEC §4.8). */
+export const chartUrl = (songId: string, sourceId: string) => `${APP_URL}/#/song/${songId}/chart/${sourceId}`
 
 const OWN_HOSTS = new Set(
   [new URL(APP_URL).host, import.meta.env.VITE_FIREBASE_AUTH_DOMAIN].filter((h): h is string => !!h), // the app is served on both

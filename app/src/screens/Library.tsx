@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { signOut } from 'firebase/auth'
 import {
-  KEY_ROOTS, NO_FILTERS, SORTS, STATUSES, activeFilterCount, collectTags, filterSongs, isStale, sortSongs,
-  type Filters, type Site, type SortKey,
+  KEY_ROOTS, NO_FILTERS, SORTS, STATUSES, activeFilterCount, collectTags, filterSongs, isChart, isStale, sortSongs,
+  type Filters, type ResourceSite, type SortKey,
 } from '@shared'
 import { auth } from '../firebase'
 import { useSettings, useSongs, type SongDoc } from '../data'
@@ -29,19 +29,22 @@ function saveSort(sort: SortKey) {
   }
 }
 
-const SITE_SHORT: { site: Site; label: string }[] = [
+/** Sites as named on a Library row and in the Site filter (SPEC §4.2). Charts are "Chart" on a row, "My charts" in the filter. */
+const SITE_SHORT: { site: ResourceSite; label: string; filterLabel?: string }[] = [
   { site: 'youtube', label: 'YouTube' },
   { site: 'ultimateguitar', label: 'UG' },
   { site: 'songsterr', label: 'Songsterr' },
+  { site: 'chart', label: 'Chart', filterLabel: 'My charts' },
 ]
 
 /** First YouTube source with a video id (SPEC §4.2); playlist-only links have none. */
 const thumbVideoId = (song: SongDoc) => song.sources.find((s) => s.site === 'youtube' && s.ytVideoId)?.ytVideoId
 
-/** A song whose links are all on one tab site (Songsterr or Ultimate Guitar) gets that site's icon in place of the placeholder. */
+/** A song whose links are all on one tab site (Songsterr or Ultimate Guitar) gets that site's icon in place of the placeholder. Charts don't count. */
 function siteIcon(song: SongDoc): string | undefined {
-  const site = song.sources[0]?.site
-  return site && song.sources.every((s) => s.site === site) ? SITE_ICONS[site] : undefined
+  const links = song.sources.filter((s) => !isChart(s))
+  const site = links[0]?.site
+  return site && links.every((s) => s.site === site) ? SITE_ICONS[site] : undefined
 }
 
 
@@ -200,6 +203,7 @@ export function Library() {
         <div className="add-menu" id="add-menu" role="menu" aria-label="Add">
           <a role="menuitem" href="#/new">Song</a>
           <a role="menuitem" href="#/add">Link</a>
+          <a role="menuitem" href="#/new/chart">Chart</a>
         </div>
       )}
       <button type="button" className={`fab${addOpen ? ' open' : ''}`} aria-label="Add" aria-haspopup="menu" aria-expanded={addOpen} aria-controls="add-menu" onClick={() => setAddOpen((o) => !o)}><IconPlus /></button>
@@ -239,13 +243,13 @@ export function Library() {
           </section>
 
           <section className="filter-group">
-            <h3 className="field-label">Site <span className="hint">· a link on any of these</span></h3>
+            <h3 className="field-label">Site <span className="hint">· has any of these</span></h3>
             <div className="chips" role="group" aria-label="Site">
               {SITE_SHORT.map((s) => {
                 const on = filters.sites.includes(s.site)
                 return (
                   <button key={s.site} type="button" aria-pressed={on} className={`chip tag${on ? ' on' : ''}`} onClick={() => set({ sites: on ? filters.sites.filter((x) => x !== s.site) : [...filters.sites, s.site] })}>
-                    {s.label}
+                    {s.filterLabel ?? s.label}
                   </button>
                 )
               })}

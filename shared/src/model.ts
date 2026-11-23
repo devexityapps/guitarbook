@@ -6,14 +6,23 @@ import type { Site } from './types.ts'
 export type Status = 'wishlist' | 'learning' | 'polishing' | 'canplay'
 export type KeyMode = 'major' | 'minor'
 
+/** What a song's resource is: a link on one of the parsed sites, or the user's own chart (SPEC §4.8). The parser never returns 'chart'. */
+export type ResourceSite = Site | 'chart'
+
+/** Longest chart text the app accepts (SPEC §3), well under Firestore's 1 MiB per document. */
+export const CHART_MAX_LENGTH = 50_000
+
+/** A song's resource (SPEC §3): a link, or a chart (site 'chart', url '', the text in `text`). */
 export interface Source<T> {
   id: string
-  site: Site
+  site: ResourceSite
   url: string
   canonicalKey: string
   label: string | null
-  /** The page's own title (tab or bookmark title), prefilled when the link is saved and editable after. Absent on older links. */
+  /** The page's own title (tab or bookmark title), prefilled when the link is saved and editable after. Absent on older links. Required for a chart. */
   title?: string | null
+  /** Charts only: the chart itself, plain text with spacing kept exactly. */
+  text?: string
   ytVideoId?: string
   ytStartSec?: number
   ytPlaylistId?: string
@@ -53,11 +62,12 @@ export const STATUSES: { value: Status; label: string }[] = [
 ]
 
 
-export const SITE_NAMES: Record<Site, string> = {
+export const SITE_NAMES: Record<ResourceSite, string> = {
   youtube: 'YouTube',
   ultimateguitar: 'Ultimate Guitar',
   songsterr: 'Songsterr',
   other: 'Other',
+  chart: 'My chart',
 }
 
 /** users/{uid}.settings (SPEC §3). */

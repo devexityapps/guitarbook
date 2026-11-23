@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { findSongByKey, findMatchingSong, deriveFields, derivedFieldsStale, mergeTags, sourceFromParsed, parseLink, relativeDays, calendarDaysBetween, isStale } from '../src/index.ts'
+import { findSongByKey, findMatchingSong, deriveFields, derivedFieldsStale, mergeTags, sourceFromParsed, chartSource, isChart, parseLink, relativeDays, calendarDaysBetween, isStale } from '../src/index.ts'
 
 const songs = [
   { id: 'a', title: 'Pride and Joy', artist: 'Stevie Ray Vaughan', sources: [{ canonicalKey: 'ug:123' }] },
@@ -89,4 +89,13 @@ test('sourceFromParsed: link title is kept separately, trimmed, and left out whe
   const without = sourceFromParsed(parsed, { id: 's2', label: null, title: '   ', now: 1 })
   assert.equal('title' in without, false)
   assert.equal('title' in sourceFromParsed(parsed, { id: 's3', label: null, now: 1 }), false)
+})
+
+test('chartSource: a chart resource with no URL, keyed chart:<id>, text kept exactly', () => {
+  const text = 'Am7        D9\n  e|---0---|\n  B|---1---|\n'
+  const c = chartSource({ id: 'c1', title: '  Intro tab  ', text, now: 5 })
+  assert.deepEqual(c, { id: 'c1', site: 'chart', url: '', canonicalKey: 'chart:c1', label: null, title: 'Intro tab', text, addedAt: 5, lastOpenedAt: null })
+  assert.equal(isChart(c), true)
+  assert.equal(isChart({ site: 'youtube' }), false)
+  assert.deepEqual(deriveFields({ title: 'Kiss of Life', artist: 'Sade', sources: [c] }).sourceKeys, ['chart:c1'])
 })

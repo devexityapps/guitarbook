@@ -25,7 +25,7 @@ A phone-first web app (installable PWA) for one guitarist to organize links to s
 v1 is **organization + open tracking only**. There's no review scheduling yet, but the data captured now (open events) must make it possible later.
 
 ### In scope
-- Items (a song or a lesson) with multiple links each
+- Items (a song or a lesson) with multiple resources each: links, and the user's own charts (chord or tab text they wrote, §4.8)
 - Tags, key, status, notes
 - Paste-a-link add flow with site detection, link parsing and duplicate detection
 - Tracking when each item and each link was last opened from the app
@@ -86,13 +86,14 @@ users/{uid}/songs/{songId}
   sourceKeys: string[]            // derived: sources.map(s => s.canonicalKey)
   matchKey: string | null         // derived: normalized "title|artist" (same normalization as the duplicate-song match); null if title empty
 
-Source {
+Source {                          // a "resource": a link, or one of the user's own charts
   id: string                      // client-generated
-  site: 'youtube' | 'ultimateguitar' | 'songsterr' | 'other'
-  url: string                     // as the user gave it, minus tracking params
-  canonicalKey: string            // 'yt:<videoId>', 'ug:<tabId>', 'ss:<songId>', or 'url:<normalized url>'
+  site: 'youtube' | 'ultimateguitar' | 'songsterr' | 'other' | 'chart'
+  url: string                     // as the user gave it, minus tracking params; '' for a chart
+  canonicalKey: string            // 'yt:<videoId>', 'ug:<tabId>', 'ss:<songId>', 'url:<normalized url>', or 'chart:<id>'
   label: string | null            // user's own label, e.g. "Simplified chords"
-  title?: string | null           // the link's own title (tab or bookmark title), separate from the song's title; prefilled on save, editable; absent on older links
+  title?: string | null           // the link's own title (tab or bookmark title), separate from the song's title; prefilled on save, editable; absent on older links. Required for a chart.
+  text?: string                   // charts only: the chart itself, plain text, at most 50,000 characters
   ytVideoId?: string
   ytStartSec?: number             // from t= param
   ytPlaylistId?: string
@@ -148,7 +149,7 @@ Single "Sign in with Google" button. After sign-in, go to Library.
 - **Filters:** the filters icon opens one sheet with every filter; there are no filter buttons above the list. Changes apply as you tap. The sheet ends with "Clear all" and "Show N items" (closes it).
   - **Status** (Learning, Polishing, Ready, Wishlist): multi-select, OR logic (a song has one status). None picked = all statuses.
   - **Tags:** multi-select, AND logic.
-  - **Site** (YouTube, UG, Songsterr): multi-select, OR logic: songs with a link on any of the picked sites. None picked = every site.
+  - **Site** (YouTube, UG, Songsterr, My charts): multi-select, OR logic: songs with a resource on any of the picked sites ("My charts" = has a chart). None picked = every site.
   - **Key** (Any, plus only the keys used in the library): single choice.
   - **Badge:** when any are on, the filters icon turns amber and shows the number of choices made (each status, tag and site, plus the key). The search text isn't counted.
 - **Count line:** "N items" reflecting active filters.
@@ -158,25 +159,25 @@ Single "Sign in with Google" button. After sign-in, go to Library.
   - Recently added
   - A–Z by title
   - Persist the chosen sort in localStorage, wrapped in try/catch.
-- **Row contents:** title; artist · key; status pill; sites present (YouTube · UG · Songsterr); right column "Never opened" / "Today" / "N days since opened".
+- **Row contents:** title; artist · key; status pill; sites present (YouTube · UG · Songsterr · Chart); right column "Never opened" / "Today" / "N days since opened".
 - **Staleness:** highlight the right column in amber when the item has never been opened or was last opened more than `settings.staleDays` days ago.
 - **Thumbnails** (when `settings.showThumbnails` is on):
   - Show a small 16:9 thumbnail at the left of the row (about 72×40), from the song's first YouTube source.
-  - Songs whose links are all on one tab site (Songsterr or Ultimate Guitar) show that site's icon in that slot. Other songs with no YouTube source get a same-size neutral placeholder with a small guitar glyph, so rows line up.
+  - Songs whose links are all on one tab site (Songsterr or Ultimate Guitar) show that site's icon in that slot; charts are ignored for this. Other songs with no YouTube source get a same-size neutral placeholder with a small guitar glyph, so rows line up.
   - Rules for loading the image: see §7.
 - **Navigation:** tapping a row goes to Song detail.
-- **Floating "+" button** opens a small menu: **Song** (a blank new-song form with the §4.4 song fields and no link; links are added later from Song detail) or **Link** (goes to Add).
+- **Floating "+" button** opens a small menu: **Song** (a blank new-song form with the §4.4 song fields and no link; links are added later from Song detail), **Link** (goes to Add) or **Chart** (a new song with its first chart, §4.8).
 - **Empty state:** short text plus two buttons, "Add link" and "Import bookmarks".
 
 ### 4.3 Song detail
 - **Back link.** No Edit button: every field is edited in place (§4.5).
 - **Header:** title, artist, "Last opened X · opened N times", then the status pill.
-- **Section order:** Tags, Key, Notes, Links, then Delete song.
+- **Section order:** Tags, Key, Notes, Resources, then Delete song.
 - **Tags, Key and Notes:** with a value, a section with its heading (Key holds the key pill and the mode pill). When empty, no heading: just a dashed "+ tags" / "+ key" / "+ notes" button, and empty ones in a row sit side by side.
-- **Links section:** one large tappable card per source. Each card shows the site (uppercase label), the link's title, else the user's label, else the link's host name, a YouTube thumbnail when there is one, and "Opened X ago" / "Never opened". Stale per-link times use the same amber rule.
-- **Tapping a card** opens the URL (see §6) and logs the open.
-- **"Add a link"** goes to Add, pre-targeted to this song.
-- **Each source has a menu:** edit title and label, remove link (confirm).
+- **Resources section** (formerly "Links"): one large tappable card per source, links and charts mixed in the order they were added. Each card shows the site (uppercase label: YOUTUBE, ULTIMATE GUITAR, SONGSTERR, OTHER or MY CHART), the title, else the user's label, else the link's host name, a YouTube thumbnail when there is one, and "Opened X ago" / "Never opened". Stale per-resource times use the same amber rule. A link card ends with the open-in-new arrow; a chart card with a page icon instead. Empty: "No resources yet."
+- **Tapping a card** opens the link or the chart viewer in a new tab (see §6 and §4.8), and logs the open either way.
+- **"+ Add"** under the cards (replacing "Add a link") opens a small menu: **Link** (goes to Add, pre-targeted to this song) or **Chart** (the chart editor for a new chart on this song, §4.8).
+- **Each resource has a menu:** for a link, edit title and label and remove link (confirm); for a chart, edit chart (§4.8) and remove chart (confirm; the text is deleted).
 - **Delete song** button at the bottom (§4.5).
 
 ### 4.4 Add link
@@ -235,7 +236,29 @@ Imported sources get `lastOpenedAt: null`. Bookmark add dates are not opens.
 - **Highlight items not opened in:** choice of 7, 14, 30, 60 or 90 days (default 30). Saved to `users/{uid}.settings.staleDays`, so it applies on every device.
 - **Show thumbnails:** on/off (default on). Saved to `users/{uid}.settings.showThumbnails`.
 - Sign out.
-- **Export JSON:** downloads `{ settings, songs, events }` for the user.
+- **Export JSON:** downloads `{ settings, songs, events }` for the user. Charts are inside `songs` (their `text`), so they're included.
+
+### 4.8 Charts (the user's own chord or tab text)
+A chart is a resource that holds text instead of pointing to a page: tab or chords the user wrote, e.g. their own tab for "Kiss of Life".
+- **Stored** as a Source on the song with `site: 'chart'`, `url: ''`, `canonicalKey: 'chart:<id>'`, `title` and `text` (§3). Plain text only; spacing kept exactly.
+- **Opening:** a chart card opens the viewer **in a new tab**, just like a link (`<a href="#/song/<songId>/chart/<sourceId>" target="_blank" rel="noopener">`), and logs an open in the same click handler (§6). Reloading or returning to the viewer doesn't log another.
+  - **Exception, installed app:** when running as an installed home-screen app (`display-mode: standalone`), open the viewer in the same window instead. On iPhone an installed app keeps its sign-in separate from Safari, so a new tab would land in Safari signed out.
+- **Viewer** (route `#/song/<songId>/chart/<sourceId>`):
+  - Header: the chart title with the song's title under it, a link to the song, an "Edit" link and a **Full screen** button.
+  - The text in a monospace font with whitespace preserved and **no wrapping**, so chord-over-lyric lines and tab staves stay aligned. Wider lines scroll sideways.
+  - **A− / A+** buttons change the text size. The size is remembered on this device (localStorage, wrapped in try/catch).
+  - **Full screen:** uses the browser's Fullscreen API where it's available (desktop, Android, iPad). Where it isn't (iPhone Safari), it hides the header and the page's own chrome so the chart fills the window. Either way, a small floating "Exit full screen" button (and Escape on a keyboard) returns to normal; A−/A+ stay available as small floating buttons.
+  - Keeps the screen on while open, using the Screen Wake Lock API where the browser supports it; nothing happens where it doesn't.
+- **Editor** (the same route with `/edit`, or `#/song/<songId>/chart/new`):
+  - Title field (prefilled "My chart", required) and a large monospace text box with spellcheck, autocorrect and autocapitalize off, so pasted tab isn't altered.
+  - "Save" (disabled while the title or text is empty) and "Cancel". Leaving with unsaved changes asks first.
+  - Saving a new chart adds it at the end of the song's resources and goes to its viewer. Saving an edit returns to the viewer.
+- **New song from a chart** (Library "+" → **Chart**, route `#/new/chart`):
+  - One form: the new-song fields (§4.4: title, artist, status, tags, key, mode), then the chart's title and text as in the editor.
+  - If the title + artist match an existing song (same normalized match as §4.4), show the "Already in your library" panel with **Add to this song** (default) and **New song**.
+  - "Save" creates the song with the chart as its first resource (or adds the chart to the matched song) and goes to the chart's viewer in the same tab.
+- **Search** matches chart titles like link titles; the chart text isn't searched.
+- **Extension:** unaffected for lookups (a chart never matches a page). In the popup's list of the song's other resources, a chart shows as "My chart · *title*" and opens its viewer in the app in a new tab, logging an open.
 
 ---
 
@@ -268,7 +291,7 @@ A pure function `parseLink(url: string, titleHint?: string)` returns `{ site, ca
 ## 6. Open tracking
 
 When a source card is tapped:
-1. **Let the link open.** Render it as `<a href={url} target="_blank" rel="noopener">` and don't call `preventDefault`. On phones this hands off to the YouTube / UG / Songsterr app or browser.
+1. **Let the link open.** Render it as `<a href={url} target="_blank" rel="noopener">` and don't call `preventDefault`. On phones this hands off to the YouTube / UG / Songsterr app or browser. A chart card opens its in-app viewer the same way, in a new tab (except in the installed app; §4.8).
 2. **In the same click handler, fire (don't await):**
    - add an `events` doc
    - update the song: `lastOpenedAt = now`, `openCount = increment(1)`, the tapped source's `lastOpenedAt = now`, `updatedAt` unchanged
@@ -287,6 +310,7 @@ When a source card is tapped:
 ## 7. Third-party terms (constraints, not suggestions)
 
 - **Store URLs, IDs, and the user's own titles, labels and notes. Never store or cache page content** (tab text, chords, lyrics, video data).
+  - The user's own charts (§4.8) are their writing, typed or pasted by them, so storing them is fine. The app never fills a chart from a site: no import, fetch or "copy from this link".
 - **Never iframe or frame Ultimate Guitar or Songsterr pages.** UG's terms prohibit framing. No embedded YouTube player in v1.
 - **No scraping:** no fetching of UG or Songsterr pages, from the app or a server.
 - **YouTube thumbnails:**
@@ -321,6 +345,8 @@ Each step ends with something usable. Stop after each one for the user to check.
      - spot-check 10 items
 7. **PWA install + Settings** (staleness threshold, thumbnails toggle, sign out, export).
    - **Check:** install to the home screen with the Guitarbook name and icon; it opens offline with cached data; changing the threshold on the phone changes the highlighting on desktop; the export downloads.
+8. **Resources and charts** (§4.3, §4.8; added later, can be built before 6 and 7). "Links" becomes "Resources", "+ Add" on Song detail offers Link or Chart, the Library "+" menu gains Chart, and the chart editor and viewer (with full screen) are added, plus the "My charts" site filter and the extension's chart row.
+   - **Check:** add a chart with aligned chords over lyrics and a tab stave on the phone; tapping its card opens it in a new tab; it stays aligned, scrolls sideways when wide, and A−/A+ and Full screen work (on iPhone and desktop); opening it updates "Last opened"; it shows offline; editing and removing work; Library "+" → Chart creates a song with the chart, and offers "Add to this song" for a matching title + artist; the extension lists it and opens it in the app.
 
 ---
 

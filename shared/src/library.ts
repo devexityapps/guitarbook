@@ -91,3 +91,21 @@ export function derivedFieldsStale(song: {
     song.matchKey !== want.matchKey
   )
 }
+
+/** A new chart resource (SPEC §4.8): site 'chart', no URL, canonicalKey 'chart:<id>'. Title and text are kept as given, except the title is trimmed. */
+export function chartSource<T>(opts: { id: string; title: string; text: string; now: T }): Source<T> {
+  return {
+    id: opts.id,
+    site: 'chart',
+    url: '',
+    canonicalKey: `chart:${opts.id}`,
+    label: null,
+    title: opts.title.trim(),
+    text: opts.text,
+    addedAt: opts.now,
+    lastOpenedAt: null,
+  }
+}
+
+/** True for the user's own chart (SPEC §4.8), as opposed to a link. */
+export const isChart = (s: { site: string }) => s.site === 'chart'

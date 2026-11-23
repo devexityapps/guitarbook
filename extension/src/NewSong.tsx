@@ -1,7 +1,7 @@
 // Popup states 6.3 and 6.4 (extension/SPEC.md): this page isn't saved yet.
 import { useRef, useState, type ReactNode } from 'react'
 import { Timestamp } from 'firebase/firestore'
-import { KEY_ROOTS, SITE_NAMES, STATUSES, cleanPageTitle, mergeTags, sourceFromParsed, type KeyMode, type ParsedLink, type Status } from '@shared'
+import { KEY_ROOTS, SITE_NAMES, STATUSES, cleanPageTitle, mergeTags, sourceFromParsed, type KeyMode, type ParsedLink, type ResourceSite, type Status } from '@shared'
 import { createSong, patchSong, type SongDoc } from './data'
 import { libraryUrl } from './config'
 import { Footer, Header } from './layout'
@@ -29,7 +29,7 @@ function clock(total: number): string {
   return h ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`
 }
 
-const SHORT_SITE: Record<ParsedLink['site'], string> = { youtube: 'YouTube', ultimateguitar: 'UG', songsterr: 'Songsterr', other: 'Link' }
+const SHORT_SITE: Record<ResourceSite, string> = { youtube: 'YouTube', ultimateguitar: 'UG', songsterr: 'Songsterr', other: 'Link', chart: 'Chart' }
 const linkSummary = (song: SongDoc) => song.sources.map((s) => SHORT_SITE[s.site]).join(', ')
 
 interface Props {
@@ -135,7 +135,7 @@ export function NewSong({ uid, parsed, pageTitle, match, initialStatus, playback
             <div className="banner-title">Already in your library</div>
             <div className="match-song">{match.title}</div>
             <div className="banner-sub">
-              {match.artist ? `${match.artist} · ` : ''}{match.sources.length} {match.sources.length === 1 ? 'link' : 'links'} ({linkSummary(match)})
+              {match.artist ? `${match.artist} · ` : ''}{match.sources.length} {match.sources.length === 1 ? 'resource' : 'resources'} ({linkSummary(match)})
             </div>
             <div className="row">
               <button className="btn primary" disabled={busy} onClick={() => void attach()}>{busy ? 'Adding…' : 'Add to this song'}</button>

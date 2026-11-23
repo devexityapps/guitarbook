@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { KEY_ROOTS, SITE_NAMES, STATUSES, isStale, mergeTags, type KeyMode, type Song, type Status } from '@shared'
+import { KEY_ROOTS, SITE_NAMES, STATUSES, isChart, isStale, mergeTags, type KeyMode, type Song, type Status } from '@shared'
 import type { Timestamp } from 'firebase/firestore'
 import { deleteSong, patchSong, recordOpen, setSources, useSettings, useSongs, useUid, type SongDoc, type SourceDoc } from '../data'
 import { lastOpenedText, openedText, toDate } from '../format'
-import { Field, Header, IconBack, IconDots, IconOut, IconPlus, InlineText, PillSelect, SITE_ICONS, Sheet, TagInput, Thumb } from '../ui'
+import { Field, Header, IconBack, IconDots, IconOut, IconPage, IconPlus, InlineText, PillSelect, SITE_ICONS, Sheet, TagInput, Thumb } from '../ui'
 import { goBack, navigate } from '../router'
+import { chartOpensInNewTab, chartPath } from './Chart'
 
 const KEY_OPTIONS = [{ value: '', label: 'No key' }, ...KEY_ROOTS.map((k) => ({ value: k as string, label: k }))]
 const MODE_OPTIONS: { value: KeyMode; label: string }[] = [{ value: 'major', label: 'Major' }, { value: 'minor', label: 'Minor' }]
@@ -19,6 +20,7 @@ export function SongDetail({ id }: { id: string }) {
   const [editing, setEditing] = useState<SourceDoc | null>(null)
   /** An empty field the user just opened from its "+" button; it closes again if left empty. */
   const [adding, setAdding] = useState<'tags' | 'notes' | null>(null)
+  const [addMenuOpen, setAddMenuOpen] = useState(false)
 
   if (songs === null) return <main className="screen"><p className="muted pad">Loading…</p></main>
   const song = songs.find((s) => s.id === id)
@@ -34,7 +36,7 @@ export function SongDetail({ id }: { id: string }) {
   const now = new Date()
   const save = (patch: Partial<Omit<Song<Timestamp>, 'sourceKeys' | 'matchKey'>>) => patchSong(uid, song, patch)
   const remove = (src: SourceDoc) => {
-    if (!window.confirm('Remove this link from the song?')) return
+    if (!window.confirm(isChart(src) ? 'Remove this chart from the song? Its text will be deleted.' : 'Remove this link from the song?')) return
     setSources(uid, song, song.sources.filter((s) => s.id !== src.id))
     setMenuFor(null)
   }
@@ -111,13 +113,22 @@ export function SongDetail({ id }: { id: string }) {
           <button type="button" className="add-field" onClick={() => setAdding('notes')}>+ notes</button>
         )}
 
-        <h2 className="section">Links</h2>
+        <h2 className="section">Resources</h2>
         <div className="stack">
           {song.sources.map((src) => {
             const stale = isStale(toDate(src.lastOpenedAt), now, staleDays)
+            const chart = isChart(src)
+            // Links and charts both open in a new tab and log the open (SPEC §6, §4.8); in the installed app a chart opens in place.
+            const newTab = !chart || chartOpensInNewTab()
             return (
               <div key={src.id} className="card source">
-                <a className="source-link" href={src.url} target="_blank" rel="noopener" onClick={() => recordOpen(uid, song, src.id)}>
+                <a
+                  className="source-link"
+                  href={chart ? `#${chartPath(song.id, src.id)}` : src.url}
+                  target={newTab ? '_blank' : undefined}
+                  rel="noopener"
+                  onClick={() => recordOpen(uid, song, src.id)}
+                >
                   {showThumbnails && src.site === 'youtube' && src.ytVideoId && <Thumb videoId={src.ytVideoId} />}
                   {SITE_ICONS[src.site] && <img className="site-icon" src={SITE_ICONS[src.site]} width={40} height={40} alt="" />}
                   <div className="source-body">
@@ -125,15 +136,28 @@ export function SongDetail({ id }: { id: string }) {
                     <div className="source-label">{src.title || src.label || defaultLabel(src)}</div>
                     <div className={`source-opened${stale ? ' stale' : ''}`}>{openedText(src.lastOpenedAt, now)}</div>
                   </div>
-                  <IconOut />
+                  {chart ? <IconPage /> : <IconOut />}
                 </a>
                 <button className="icon-btn" aria-label={`Options for ${src.title || src.label || defaultLabel(src)}`} onClick={() => setMenuFor(src.id)}><IconDots /></button>
               </div>
             )
           })}
-          {song.sources.length === 0 && <p className="muted">No links yet.</p>}
+          {song.sources.length === 0 && <p className="muted">No resources yet.</p>}
         </div>
-        <a className="add-link" href={`#/add?song=${song.id}`}><IconPlus /> Add a link</a>
+        <div className="add-resource">
+          <button type="button" className="add-link" aria-haspopup="menu" aria-expanded={addMenuOpen} aria-controls="add-resource-menu" onClick={() => setAddMenuOpen((o) => !o)}>
+            <IconPlus /> Add
+          </button>
+          {addMenuOpen && (
+            <>
+              <div className="menu-backdrop" onClick={() => setAddMenuOpen(false)} />
+              <div className="top-menu inline-menu" id="add-resource-menu" role="menu" aria-label="Add a resource" onKeyDown={(e) => { if (e.key === 'Escape') setAddMenuOpen(false) }}>
+                <a role="menuitem" href={`#/add?song=${song.id}`}>Link</a>
+                <a role="menuitem" href={`#${chartPath(song.id, 'new')}`}>Chart</a>
+              </div>
+            </>
+          )}
+        </div>
 
         <button className="btn danger delete-song" type="button" onClick={removeSong}>Delete song</button>
       </div>
@@ -143,8 +167,17 @@ export function SongDetail({ id }: { id: string }) {
         if (!src) return null
         return (
           <Sheet title={src.title || src.label || defaultLabel(src)} onClose={() => setMenuFor(null)}>
-            <button className="btn" onClick={() => { setEditing(src); setMenuFor(null) }}>Edit title and label</button>
-            <button className="btn danger" onClick={() => remove(src)}>Remove link</button>
+            {isChart(src) ? (
+              <>
+                <button className="btn" onClick={() => navigate(`${chartPath(song.id, src.id)}/edit`)}>Edit chart</button>
+                <button className="btn danger" onClick={() => remove(src)}>Remove chart</button>
+              </>
+            ) : (
+              <>
+                <button className="btn" onClick={() => { setEditing(src); setMenuFor(null) }}>Edit title and label</button>
+                <button className="btn danger" onClick={() => remove(src)}>Remove link</button>
+              </>
+            )}
             <button className="btn ghost" onClick={() => setMenuFor(null)}>Cancel</button>
           </Sheet>
         )

@@ -132,3 +132,11 @@ test('activeFilterCount: each status, tag and site, plus the key; not the search
   assert.equal(activeFilterCount({ ...NO_FILTERS, query: 'joy' }), 0)
   assert.equal(activeFilterCount({ ...NO_FILTERS, statuses: ['learning', 'polishing'], tags: ['blues'], sites: ['youtube', 'songsterr'], keyRoot: 'E' }), 6)
 })
+
+test('charts: the site filter picks songs with a chart; search matches chart titles', () => {
+  const withChart = song({ title: 'Kiss of Life', artist: 'Sade', sources: [{ site: 'chart', label: null, title: 'My intro tab' }] })
+  const lib = [...library, withChart]
+  assert.deepEqual(titles(filterSongs(lib, { ...NO_FILTERS, sites: ['chart'] })), ['Kiss of Life'])
+  assert.deepEqual(titles(filterSongs(lib, { ...NO_FILTERS, sites: ['chart', 'songsterr'] })), ['Pride and Joy', 'Kiss of Life'])
+  assert.equal(matchesQuery(withChart, 'intro tab'), true)
+})

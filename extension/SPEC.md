@@ -144,7 +144,8 @@ The parser already handles URLs; these are extra rules for tab titles.
 - **Editable fields for this link:** link title.
 - **Notes and link labels are not in the popup** (any state). They're edited in the app; the popup stays for quick saves and fixes. Saving from the popup leaves `notes` empty for a new song and `label` null for a new link, and never overwrites existing values.
 - **Saving:** autosaves on change (debounced ~600 ms), with a small "Saved" indicator. Edits made just before the popup closes must still be written: flush any pending save immediately on `pagehide` / `visibilitychange`.
-- **Other links on this song:** compact list (site · label or link title · last opened). Clicking one opens it in a new tab and logs an open, exactly as in the app (event doc + `lastOpenedAt` + `openCount`).
+- **Other resources on this song** (was "Other links"): compact list (site · label or link title · last opened). Clicking one opens it in a new tab and logs an open, exactly as in the app (event doc + `lastOpenedAt` + `openCount`).
+  - The user's own charts (app SPEC §4.8) appear here too, as "My chart · *title*". Clicking one opens the chart's viewer in the app (`#/song/<id>/chart/<sourceId>`) in a new tab and logs an open the same way.
 - **"Mark opened now"** button: logs an open for this link. Opens aren't recorded automatically when you merely visit a saved page.
 - **Remove this link** (confirm). If it's the song's last link, offer instead: "Delete the song too?" (confirm).
 

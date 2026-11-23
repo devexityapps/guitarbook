@@ -1,5 +1,4 @@
-import type { Status } from './model.ts'
-import type { Site } from './types.ts'
+import type { ResourceSite, Status } from './model.ts'
 import { normalizeForSearch } from './text.ts'
 
 /** Anything with a millisecond reading: a Firestore Timestamp fits, so this folder needs no Firebase import. */
@@ -13,7 +12,7 @@ export interface QuerySong<T extends TimeLike = TimeLike> {
   keyRoot: string | null
   status: Status
   tags: string[]
-  sources: { site: Site; label: string | null; title?: string | null }[]
+  sources: { site: ResourceSite; label: string | null; title?: string | null }[]
   createdAt: T
   lastOpenedAt: T | null
 }
@@ -25,7 +24,7 @@ export interface Filters {
   /** Every listed tag must be on the song (AND), compared case-insensitively. */
   tags: string[]
   /** The song must have a link on at least one of these sites (OR). Empty = every site. */
-  sites: Site[]
+  sites: ResourceSite[]
   keyRoot: string | null
 }
 

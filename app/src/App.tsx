@@ -8,13 +8,21 @@ import { Library } from './screens/Library'
 import { AddLink } from './screens/AddLink'
 import { NewSong } from './screens/NewSong'
 import { SongDetail } from './screens/SongDetail'
+import { ChartEditor, ChartViewer, NewChart } from './screens/Chart'
 
 function Routes() {
   const { path } = useRoute()
   if (path[0] === 'add') return <AddLink />
-  if (path[0] === 'new') return <NewSong />
-  // Song detail edits in place; an old "#/song/<id>/edit" link lands here too.
-  if (path[0] === 'song' && path[1]) return <SongDetail id={path[1]} />
+  if (path[0] === 'new') return path[1] === 'chart' ? <NewChart /> : <NewSong />
+  if (path[0] === 'song' && path[1]) {
+    // Charts (SPEC §4.8): #/song/<id>/chart/new, #/song/<id>/chart/<sourceId>, #/song/<id>/chart/<sourceId>/edit
+    if (path[2] === 'chart' && path[3]) {
+      if (path[3] === 'new') return <ChartEditor songId={path[1]} sourceId={null} />
+      return path[4] === 'edit' ? <ChartEditor songId={path[1]} sourceId={path[3]} /> : <ChartViewer songId={path[1]} sourceId={path[3]} />
+    }
+    // Song detail edits in place; an old "#/song/<id>/edit" link lands here too.
+    return <SongDetail id={path[1]} />
+  }
   return <Library />
 }
 
